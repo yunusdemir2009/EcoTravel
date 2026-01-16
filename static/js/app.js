@@ -135,8 +135,6 @@ async function geocodeLocation(locationName, type) {
                 document.getElementById('endLat').value = lat;
                 document.getElementById('endLng').value = lng;
             }
-            
-            console.log(`${type} location geocoded: ${locationName} -> ${lat}, ${lng}`);
         } else {
             showNotification(data.error || `"${locationName}" için konum bulunamadı`, 'error');
         }
@@ -177,17 +175,17 @@ async function reverseGeocode(lat, lng) {
 async function handleTravelFormSubmit(e) {
     e.preventDefault();
     
-    // First, geocode locations if they haven't been geocoded yet
+    # First, geocode locations if they haven't been geocoded yet
     const startLocation = document.getElementById('startLocation').value;
     const endLocation = document.getElementById('endLocation').value;
     
     // Geocode start location if needed
-    if (startLocation && !document.getElementById('startLat').value) {
+    if (startLocation && startLocation.trim() && !document.getElementById('startLat').value) {
         await geocodeLocation(startLocation, 'start');
     }
     
     // Geocode end location if provided and not already geocoded
-    if (endLocation && !document.getElementById('endLat').value) {
+    if (endLocation && endLocation.trim() && !document.getElementById('endLat').value) {
         await geocodeLocation(endLocation, 'end');
     }
     

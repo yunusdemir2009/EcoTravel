@@ -510,14 +510,18 @@ def reverse_geocode():
         min_distance = float('inf')
         closest_city = None
         
+        # Use geodesic distance for more accurate calculation
+        from geopy.distance import geodesic
+        
         for city_data in TURKISH_CITIES.values():
-            distance = ((lat - city_data["lat"]) ** 2 + (lng - city_data["lng"]) ** 2) ** 0.5
-            if distance < min_distance:
-                min_distance = distance
+            distance_km = geodesic((lat, lng), (city_data["lat"], city_data["lng"])).km
+            if distance_km < min_distance:
+                min_distance = distance_km
                 closest_city = city_data
         
-        # If within reasonable distance (about 50km in degrees ~0.5)
-        if closest_city and min_distance < 0.5:
+        # If within reasonable distance (50km)
+        MAX_CITY_DISTANCE_KM = 50  # Maximum distance to consider city as match
+        if closest_city and min_distance < MAX_CITY_DISTANCE_KM:
             return jsonify({
                 "success": True,
                 "location_name": closest_city["name"]
