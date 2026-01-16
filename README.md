@@ -67,8 +67,24 @@ pip install -r requirements.txt
 ```
 
 ### Adım 3: Uygulamayı Başlatın
+
+#### Geliştirme Ortamı (Development)
 ```bash
+# Debug mode etkin
+export FLASK_DEBUG=true
 python app.py
+```
+
+#### Üretim Ortamı (Production)
+```bash
+# Debug mode kapalı (güvenlik için önemli)
+python app.py
+```
+
+**Önemli Güvenlik Notu:** Üretim ortamında Flask'ın yerleşik sunucusunu kullanmayın. Bunun yerine Gunicorn veya uWSGI gibi production-ready bir WSGI sunucusu kullanın:
+```bash
+pip install gunicorn
+gunicorn -w 4 -b 0.0.0.0:5000 app:app
 ```
 
 ### Adım 4: Tarayıcıda Açın
