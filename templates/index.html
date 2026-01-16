@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EcoTravel - Akıllı Gezi Planlayıcı</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style_enhanced.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🌍 EcoTravel</h1>
+            <p class="tagline">Akıllı Gezi Planlayıcı - Bütçene ve Zamanına Göre Kişiselleştirilmiş Rotalar</p>
+        </header>
+
+        <main>
+            <!-- Input Section -->
+            <section class="input-section">
+                <h2>Gezi Bilgileriniz</h2>
+                <form id="travelForm">
+                    <div class="form-group">
+                        <label for="startLocation">Başlangıç Konumu:</label>
+                        <div class="location-input-group">
+                            <input type="text" id="startLocation" placeholder="Şehir, ülke veya adres (örn: Paris, London, New York, Istanbul)" required>
+                            <button type="button" id="useGPSBtn" class="gps-btn" title="Mevcut konumumu kullan">
+                                📍 GPS Kullan
+                            </button>
+                        </div>
+                        <small>🌍 Dünyanın herhangi bir yerini yazabilirsiniz! GPS ile otomatik konum alabilirsiniz.</small>
+                        <input type="hidden" id="startLat" value="39.9334">
+                        <input type="hidden" id="startLng" value="32.8597">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="endLocation">Gideceğiniz Yer (İsteğe Bağlı):</label>
+                        <input type="text" id="endLocation" placeholder="Hedef şehir, ülke veya adres (örn: Rome, Barcelona) - Gidiş-dönüş için boş bırakın">
+                        <small>🌍 Global destinasyon desteği! Boş bırakırsanız gidiş-dönüş plan hazırlanır.</small>
+                        <input type="hidden" id="endLat">
+                        <input type="hidden" id="endLng">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="days">Gün Sayısı:</label>
+                        <input type="number" id="days" min="1" max="30" value="5" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="budget">Bütçe (₺):</label>
+                        <input type="number" id="budget" min="2000" step="500" value="15000" required>
+                        <small>2026 için önerilen minimum: Ekonomik 15.000₺, Orta 30.000₺, Lüks 60.000₺ (5-7 gün için)</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Gezi Türü Tercihleri:</label>
+                        <div class="checkbox-group">
+                            <label>
+                                <input type="checkbox" name="preferences" value="nature"> Doğa
+                            </label>
+                            <label>
+                                <input type="checkbox" name="preferences" value="culture"> Kültür
+                            </label>
+                            <label>
+                                <input type="checkbox" name="preferences" value="gastronomy"> Gastronomi
+                            </label>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-primary">Plan Oluştur 🚀</button>
+                </form>
+                
+                <!-- Quick Demo Scenarios -->
+                <div class="demo-scenarios">
+                    <h3>Hızlı Test Senaryoları:</h3>
+                    <div class="demo-buttons">
+                        <button type="button" class="btn-demo" onclick="loadDemo(1)">🏖️ Ankara → Antalya (7 gün)</button>
+                        <button type="button" class="btn-demo" onclick="loadDemo(2)">🎭 İstanbul Turu (3 gün)</button>
+                        <button type="button" class="btn-demo" onclick="loadDemo(3)">🌄 Kapadokya (4 gün)</button>
+                        <button type="button" class="btn-demo" onclick="loadDemo(4)">🌊 İzmir → Fethiye (5 gün)</button>
+                    </div>
+                    <h4 style="margin-top: 20px;">🌍 Global Senaryolar:</h4>
+                    <div class="demo-buttons">
+                        <button type="button" class="btn-demo" onclick="loadDemo(5)">🗼 Paris Turu (5 gün)</button>
+                        <button type="button" class="btn-demo" onclick="loadDemo(6)">🗽 New York → Washington DC (7 gün)</button>
+                        <button type="button" class="btn-demo" onclick="loadDemo(7)">🌸 Tokyo Turu (6 gün)</button>
+                        <button type="button" class="btn-demo" onclick="loadDemo(8)">🎨 Rome → Venice (5 gün)</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Results Section -->
+            <section id="resultsSection" class="results-section" style="display: none;">
+                <h2>Gezi Planlarınız</h2>
+                
+                <div class="plan-tabs">
+                    <button class="tab-btn active" data-tier="basic">Ekonomik Plan</button>
+                    <button class="tab-btn" data-tier="mid">Orta Seviye</button>
+                    <button class="tab-btn" data-tier="luxury">Lüks Plan</button>
+                </div>
+
+                <div id="planContent" class="plan-content">
+                    <!-- Plan details will be loaded here -->
+                </div>
+
+                <!-- Map Section -->
+                <div class="map-section">
+                    <h3>Rota Haritası</h3>
+                    <div id="map"></div>
+                </div>
+            </section>
+
+            <!-- POI List Section -->
+            <section class="poi-section">
+                <h2>Popüler Gezilecek Yerler</h2>
+                <div id="poiList" class="poi-grid">
+                    <!-- POIs will be loaded here -->
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>&copy; 2026 EcoTravel - Sürdürülebilir ve Akıllı Seyahat Planlama</p>
+        </footer>
+    </div>
+
+    <!-- Review Modal -->
+    <div id="reviewModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Yorum Ekle</h2>
+            <form id="reviewForm">
+                <input type="hidden" id="reviewPoiId">
+                <div class="form-group">
+                    <label for="rating">Puan (1-5):</label>
+                    <select id="rating" required>
+                        <option value="5">5 - Mükemmel</option>
+                        <option value="4">4 - Çok İyi</option>
+                        <option value="3">3 - İyi</option>
+                        <option value="2">2 - Orta</option>
+                        <option value="1">1 - Zayıf</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="comment">Yorumunuz:</label>
+                    <textarea id="comment" rows="4" required></textarea>
+                </div>
+                <button type="submit" class="btn-primary">Gönder</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="{{ url_for('static', filename='js/app_enhanced.js') }}"></script>
+</body>
+</html>

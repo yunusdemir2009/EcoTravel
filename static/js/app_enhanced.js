@@ -1,0 +1,851 @@
+// Global variables
+let currentPlans = null;
+let map = null;
+let markers = [];
+let routeLayers = [];
+
+// Initialize the application
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('✅ DOMContentLoaded - Sayfa yüklendi');
+    console.log('📍 Form element:', document.getElementById('travelForm'));
+    console.log('📍 Start location:', document.getElementById('startLocation'));
+    console.log('📍 GPS button:', document.getElementById('useGPSBtn'));
+    
+    loadPOIs();
+    setupEventListeners();
+    document.getElementById('startLocation').value = 'Ankara';
+    initMap();
+    
+    console.log('✅ Tüm başlangıç fonksiyonları çalıştırıldı');
+});
+
+// Initialize map with better styling
+function initMap() {
+    if (!map) {
+        map = L.map('map').setView([39.9334, 32.8597], 6);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 18
+        }).addTo(map);
+        
+        // Add scale control
+        L.control.scale({imperial: false, metric: true}).addTo(map);
+    }
+    return map;
+}
+
+// Draw animated route on map
+function drawRoute(plan) {
+    if (!map) initMap();
+    
+    // Clear existing markers and routes
+    markers.forEach(marker => map.removeLayer(marker));
+    markers = [];
+    routeLayers.forEach(layer => map.removeLayer(layer));
+    routeLayers = [];
+    
+    const routePoints = [];
+    const bounds = [];
+    
+    // Get start location from first day's first activity or use default
+    let startLat = 39.9334, startLng = 32.8597, startName = 'Başlangıç';
+    
+    if (plan.itinerary && plan.itinerary.length > 0) {
+        const firstDay = plan.itinerary[0];
+        if (firstDay.activities && firstDay.activities.length > 0) {
+            const firstActivity = firstDay.activities[0];
+            if (firstActivity.location) {
+                // Use location before first activity as start
+                startLat = firstActivity.location.lat;
+                startLng = firstActivity.location.lng;
+                startName = 'Başlangıç Noktası';
+            }
+        }
+    }
+    
+    // Add start marker
+    const startMarker = L.marker([startLat, startLng], {
+        icon: L.divIcon({
+            className: 'custom-marker start-marker',
+            html: `<div class="marker-pin start-pin">
+                <div class="marker-icon">🏁</div>
+                <div class="marker-label">${startName}</div>
+            </div>`,
+            iconSize: [40, 60]
+        })
+    }).addTo(map);
+    
+    startMarker.bindPopup(`
+        <div class="marker-popup">
+            <h4>🏁 Başlangıç Noktası</h4>
+            <p><strong>${startName}</strong></p>
+        </div>
+    `);
+    
+    markers.push(startMarker);
+    routePoints.push([startLat, startLng]);
+    bounds.push([startLat, startLng]);
+    
+    // Add activity markers with day indicators
+    if (plan.itinerary) {
+        plan.itinerary.forEach((day, dayIndex) => {
+            if (day.activities) {
+                day.activities.forEach((activity, actIndex) => {
+                    if (activity.location) {
+                        const categoryIcons = {
+                            'nature': '🏞️',
+                            'culture': '🏛️',
+                            'gastronomy': '🍽️',
+                            'adventure': '🎢'
+                        };
+                        const icon = categoryIcons[activity.category] || '📍';
+                        
+                        const activityMarker = L.marker([activity.location.lat, activity.location.lng], {
+                            icon: L.divIcon({
+                                className: 'custom-marker activity-marker',
+                                html: `<div class="marker-pin activity-pin">
+                                    <div class="marker-number">Gün ${day.day}</div>
+                                    <div class="marker-icon">${icon}</div>
+                                </div>`,
+                                iconSize: [50, 60]
+                            })
+                        }).addTo(map);
+                        
+                        activityMarker.bindPopup(`
+                            <div class="marker-popup">
+                                <h4>📅 Gün ${day.day}</h4>
+                                <h3>${activity.name}</h3>
+                                <p>${activity.description}</p>
+                                <div class="popup-details">
+                                    <span>⏱️ ${activity.duration} saat</span>
+                                    <span>💰 ${activity.cost.toLocaleString('tr-TR')} ₺</span>
+                                </div>
+                            </div>
+                        `);
+                        
+                        markers.push(activityMarker);
+                        routePoints.push([activity.location.lat, activity.location.lng]);
+                        bounds.push([activity.location.lat, activity.location.lng]);
+                    }
+                });
+            }
+        });
+    }
+    
+    // Add end marker from last activity if available
+    if (plan.itinerary && plan.itinerary.length > 0) {
+        const lastDay = plan.itinerary[plan.itinerary.length - 1];
+        if (lastDay.activities && lastDay.activities.length > 0) {
+            const lastActivity = lastDay.activities[lastDay.activities.length - 1];
+            if (lastActivity.location) {
+                const endMarker = L.marker([lastActivity.location.lat, lastActivity.location.lng], {
+                    icon: L.divIcon({
+                        className: 'custom-marker end-marker',
+                        html: `<div class="marker-pin end-pin">
+                            <div class="marker-icon">🎯</div>
+                            <div class="marker-label">Bitiş</div>
+                        </div>`,
+                        iconSize: [40, 60]
+                    })
+                }).addTo(map);
+                
+                endMarker.bindPopup(`
+                    <div class="marker-popup">
+                        <h4>🎯 Son Nokta</h4>
+                        <p><strong>${lastActivity.name}</strong></p>
+                    </div>
+                `);
+                
+                markers.push(endMarker);
+                if (routePoints.length === 0 || 
+                    routePoints[routePoints.length-1][0] !== lastActivity.location.lat ||
+                    routePoints[routePoints.length-1][1] !== lastActivity.location.lng) {
+                    routePoints.push([lastActivity.location.lat, lastActivity.location.lng]);
+                    bounds.push([lastActivity.location.lat, lastActivity.location.lng]);
+                }
+            }
+        }
+    }
+    
+    // Draw animated route polyline
+    let routeLine = null;
+    if (routePoints.length > 1) {
+        routeLine = L.polyline(routePoints, {
+            color: '#3498db',
+            weight: 5,
+            opacity: 0.8,
+            smoothFactor: 1.5,
+            dashArray: '15, 10',
+            dashOffset: '0',
+            className: 'animated-route'
+        }).addTo(map);
+        
+        routeLayers.push(routeLine);
+        
+        // Add arrow decorations
+        routePoints.forEach((point, index) => {
+            if (index < routePoints.length - 1) {
+                const nextPoint = routePoints[index + 1];
+                const midLat = (point[0] + nextPoint[0]) / 2;
+                const midLng = (point[1] + nextPoint[1]) / 2;
+                
+                const arrow = L.marker([midLat, midLng], {
+                    icon: L.divIcon({
+                        className: 'route-arrow',
+                        html: '<div style="color: #3498db; font-size: 20px;">➤</div>',
+                        iconSize: [20, 20]
+                    })
+                }).addTo(map);
+                
+                routeLayers.push(arrow);
+            }
+        });
+    
+    // Fit map to bounds
+    if (bounds.length > 0) {
+        map.fitBounds(bounds, { padding: [50, 50] });
+    }
+    
+    // Animate route drawing
+    if (routeLine) {
+        setTimeout(() => {
+            routeLine.setStyle({ dashOffset: '100' });
+        }, 100);
+    }
+}
+
+// Load demo scenario
+window.loadDemo = function(scenarioId) {
+    try {
+        const scenarios = {
+            1: {
+                startLocation: 'Ankara',
+                startLat: 39.9334,
+                startLng: 32.8597,
+                endLocation: 'Antalya',
+                endLat: 36.8969,
+                endLng: 30.7133,
+                days: 7,
+                budget: 25000,
+                preferences: ['nature', 'culture']
+            },
+            2: {
+                startLocation: 'İstanbul, Kadıköy',
+                startLat: 40.9833,
+                startLng: 29.0333,
+                endLocation: '',
+                endLat: null,
+                endLng: null,
+                days: 3,
+                budget: 12000,
+                preferences: ['culture', 'gastronomy']
+            },
+            3: {
+                startLocation: 'Ankara',
+                startLat: 39.9334,
+                startLng: 32.8597,
+                endLocation: 'Nevşehir, Kapadokya',
+                endLat: 38.6431,
+                endLng: 34.8286,
+                days: 4,
+                budget: 18000,
+                preferences: ['nature', 'culture']
+            },
+            4: {
+                startLocation: 'İzmir',
+                startLat: 38.4237,
+                startLng: 27.1428,
+                endLocation: 'Fethiye',
+                endLat: 36.6542,
+                endLng: 29.1256,
+                days: 5,
+                budget: 20000,
+                preferences: ['nature', 'gastronomy']
+            }
+        };
+        
+        const scenario = scenarios[scenarioId];
+        if (!scenario) {
+            console.error('Scenario not found:', scenarioId);
+            return;
+        }
+        
+        // Fill form fields
+        document.getElementById('startLocation').value = scenario.startLocation;
+        document.getElementById('startLat').value = scenario.startLat;
+        document.getElementById('startLng').value = scenario.startLng;
+        document.getElementById('endLocation').value = scenario.endLocation;
+        document.getElementById('endLat').value = scenario.endLat || '';
+        document.getElementById('endLng').value = scenario.endLng || '';
+        document.getElementById('days').value = scenario.days;
+        document.getElementById('budget').value = scenario.budget;
+        
+        // Set preferences
+        document.querySelectorAll('input[name="preferences"]').forEach(cb => {
+            cb.checked = scenario.preferences.includes(cb.value);
+        });
+        
+        showNotification(`✅ Demo yüklendi: ${scenario.startLocation} ${scenario.endLocation ? '→ ' + scenario.endLocation : 'Turu'}`, 'success');
+        
+        document.getElementById('travelForm').scrollIntoView({ behavior: 'smooth' });
+    } catch (error) {
+        console.error('Error loading demo:', error);
+        showNotification('Demo yüklenirken hata oluştu', 'error');
+    }
+};
+
+// Setup event listeners
+function setupEventListeners() {
+    console.log('🔧 setupEventListeners çağrıldı');
+    const form = document.getElementById('travelForm');
+    console.log('📝 Form bulundu:', form ? 'Evet' : 'Hayır');
+    if (form) {
+        form.addEventListener('submit', handleTravelFormSubmit);
+        console.log('✅ Form submit listener eklendi');
+    } else {
+        console.error('❌ Form bulunamadı!');
+    }
+    
+    const gpsBtn = document.getElementById('useGPSBtn');
+    if (gpsBtn) {
+        gpsBtn.addEventListener('click', useCurrentLocation);
+    }
+    
+    // Tab switching
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            tabBtns.forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            showPlan(this.dataset.tier);
+        });
+    });
+    
+    // Location input autocomplete
+    const startInput = document.getElementById('startLocation');
+    const endInput = document.getElementById('endLocation');
+    
+    if (startInput) {
+        startInput.addEventListener('blur', function() {
+            if (this.value.trim()) {
+                geocodeLocation(this.value, 'start');
+            }
+        });
+    }
+    
+    if (endInput) {
+        endInput.addEventListener('blur', function() {
+            if (this.value.trim()) {
+                geocodeLocation(this.value, 'end');
+            }
+        });
+    }
+}
+
+// Use current GPS location
+function useCurrentLocation() {
+    const btn = document.getElementById('useGPSBtn');
+    btn.innerHTML = '⏳ Konum alınıyor...';
+    btn.disabled = true;
+    
+    if ('geolocation' in navigator) {
+        navigator.geolocation.getCurrentPosition(
+            async (position) => {
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+                
+                document.getElementById('startLat').value = lat;
+                document.getElementById('startLng').value = lng;
+                
+                const locationName = await reverseGeocode(lat, lng);
+                document.getElementById('startLocation').value = locationName;
+                
+                showNotification('✅ Konumunuz alındı: ' + locationName, 'success');
+                btn.innerHTML = '📍 GPS Kullan';
+                btn.disabled = false;
+            },
+            (error) => {
+                showNotification('❌ Konum alınamadı: ' + error.message, 'error');
+                btn.innerHTML = '📍 GPS Kullan';
+                btn.disabled = false;
+            }
+        );
+    } else {
+        showNotification('❌ Tarayıcınız konum servisini desteklemiyor', 'error');
+        btn.innerHTML = '📍 GPS Kullan';
+        btn.disabled = false;
+    }
+}
+
+// Geocode location
+async function geocodeLocation(locationName, type) {
+    try {
+        const response = await fetch('/api/geocode', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ location: locationName })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            document.getElementById(`${type}Lat`).value = data.lat;
+            document.getElementById(`${type}Lng`).value = data.lng;
+            if (data.location_name) {
+                document.getElementById(`${type}Location`).value = data.location_name;
+            }
+            return true;
+        }
+        return false;
+    } catch (error) {
+        console.error('Geocoding error:', error);
+        return false;
+    }
+}
+
+// Reverse geocode
+async function reverseGeocode(lat, lng) {
+    try {
+        const response = await fetch('/api/reverse-geocode', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ lat, lng })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            return data.location_name;
+        }
+        
+        return `Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}`;
+    } catch (error) {
+        console.error('Reverse geocoding error:', error);
+        return `Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}`;
+    }
+}
+
+// Handle travel form submission
+async function handleTravelFormSubmit(e) {
+    console.log('🚀 Form submit tetiklendi!');
+    e.preventDefault();
+    
+    console.log('📍 Form verileri toplanıyor...');
+    
+    const startLocation = document.getElementById('startLocation').value;
+    const endLocation = document.getElementById('endLocation').value;
+    
+    // Geocode if needed
+    if (startLocation && startLocation.trim() && !document.getElementById('startLat').value) {
+        await geocodeLocation(startLocation, 'start');
+    }
+    
+    if (endLocation && endLocation.trim() && !document.getElementById('endLat').value) {
+        await geocodeLocation(endLocation, 'end');
+    }
+    
+    const startLat = parseFloat(document.getElementById('startLat').value);
+    const startLng = parseFloat(document.getElementById('startLng').value);
+    const endLat = parseFloat(document.getElementById('endLat').value);
+    const endLng = parseFloat(document.getElementById('endLng').value);
+    const days = parseInt(document.getElementById('days').value);
+    const budget = parseFloat(document.getElementById('budget').value);
+    
+    const preferences = Array.from(document.querySelectorAll('input[name="preferences"]:checked'))
+        .map(cb => cb.value);
+    
+    const requestData = {
+        start_location: startLocation,
+        start_lat: startLat,
+        start_lng: startLng,
+        days: days,
+        budget: budget,
+        preferences: preferences
+    };
+    
+    if (endLat && endLng) {
+        requestData.end_location = endLocation;
+        requestData.end_lat = endLat;
+        requestData.end_lng = endLng;
+    }
+    
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    const originalText = submitBtn.textContent;
+    submitBtn.disabled = true;
+    
+    // Show loading overlay
+    showLoadingOverlay();
+    
+    try {
+        const response = await fetch('/api/plan', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestData)
+        });
+        
+        const data = await response.json();
+        
+        if (data.success || data.plans) {
+            currentPlans = data.plans;
+            displayPlans(data.plans);
+            hideLoadingOverlay();
+            showNotification('✅ Planlarınız hazır!', 'success');
+            setTimeout(() => {
+                document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth' });
+            }, 300);
+        } else {
+            hideLoadingOverlay();
+            showNotification('❌ Hata: ' + (data.error || 'Plan oluşturulamadı'), 'error');
+        }
+    } catch (error) {
+        hideLoadingOverlay();
+        showNotification('❌ Bir hata oluştu: ' + error.message, 'error');
+    } finally {
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
+    }
+}
+
+// Display travel plans
+function displayPlans(plans) {
+    const resultsSection = document.getElementById('resultsSection');
+    resultsSection.style.display = 'block';
+    
+    initMap();
+    showPlan('basic');
+}
+
+// Show specific plan
+function showPlan(tier) {
+    if (!currentPlans || !currentPlans[tier]) {
+        console.error('Plan not found:', tier);
+        return;
+    }
+    
+    const plan = currentPlans[tier];
+    displayPlanContent(plan);
+    drawRoute(plan);
+}
+
+// Display plan content with price comparison
+function displayPlanContent(plan) {
+    const planContent = document.getElementById('planContent');
+    
+    const tierNames = {
+        'basic': 'Ekonomik Plan',
+        'mid': 'Orta Seviye Plan',
+        'luxury': 'Lüks Plan'
+    };
+    
+    const tierColors = {
+        'basic': '#27ae60',
+        'mid': '#3498db',
+        'luxury': '#9b59b6'
+    };
+    
+    const tierIcons = {
+        'basic': '💰',
+        'mid': '⭐',
+        'luxury': '👑'
+    };
+    
+    const tierEmojis = {
+        'basic': '🏕️',
+        'mid': '🏨',
+        'luxury': '🏰'
+    };
+    
+    let html = `
+        <div class="plan-header" style="background: linear-gradient(135deg, ${tierColors[plan.tier]}, ${tierColors[plan.tier]}dd); padding: 30px; border-radius: 15px; color: white; margin-bottom: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                <div>
+                    <h2 style="margin: 0 0 10px 0; font-size: 2.5em;">${tierIcons[plan.tier]} ${tierNames[plan.tier]}</h2>
+                    <p style="margin: 0; font-size: 1.2em; opacity: 0.95;">${tierEmojis[plan.tier]} ${plan.is_round_trip ? 'Gidiş-Dönüş Tur' : 'Tek Yön Gezi'}</p>
+                </div>
+                <div style="text-align: right;">
+                    <div style="font-size: 3em; font-weight: bold;">${tierIcons[plan.tier]}</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="price-comparison" style="background: white; padding: 25px; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); margin-bottom: 30px;">
+            <h3 style="color: #2c3e50; margin: 0 0 20px 0; font-size: 1.8em;">💵 Maliyet Özeti</h3>
+            <div style="background: linear-gradient(135deg, #2ecc71, #27ae60); padding: 25px; border-radius: 10px; text-align: center; color: white;">
+                <div style="font-size: 1.2em; margin-bottom: 10px;">Tahmini Toplam Maliyet</div>
+                <div style="font-size: 3em; font-weight: bold; margin-bottom: 10px;">${plan.estimated_cost.toLocaleString('tr-TR')} ₺</div>
+                <div style="font-size: 0.9em; opacity: 0.9;">
+                    Min: ${plan.min_cost.toLocaleString('tr-TR')} ₺ - Max: ${plan.max_cost.toLocaleString('tr-TR')} ₺
+                </div>
+            </div>
+            
+            ${plan.fits_budget !== undefined ? `
+                <div class="budget-comparison" style="margin-top: 20px; padding: 15px; background: ${plan.fits_budget ? '#d4edda' : '#f8d7da'}; border-radius: 10px; border: 2px solid ${plan.fits_budget ? '#c3e6cb' : '#f5c6cb'};">
+                    <div style="text-align: center;">
+                        <strong style="font-size: 1.2em;">${plan.fits_budget ? '✅ Bu plan bütçenize uygun!' : '⚠️ Bu plan bütçenizi aşıyor'}</strong>
+                    </div>
+                </div>
+            ` : ''}
+        </div>
+        
+        <div class="itinerary" style="background: white; padding: 25px; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.1);">
+            <h3 style="color: #2c3e50; margin: 0 0 25px 0; font-size: 1.8em;">📅 ${plan.itinerary.length} Günlük Detaylı Program</h3>
+    `;
+    
+    plan.itinerary.forEach((day) => {
+        html += `
+            <div class="day-card" style="background: #f8f9fa; padding: 25px; border-radius: 15px; margin-bottom: 20px; border-left: 5px solid ${tierColors[plan.tier]};">
+                <div class="day-header" style="margin-bottom: 20px;">
+                    <h4 style="color: ${tierColors[plan.tier]}; margin: 0; font-size: 1.6em;">🗓️ Gün ${day.day}</h4>
+                </div>
+                
+                <div class="day-content">
+        `;
+        
+        if (day.activities && day.activities.length > 0) {
+            html += '<div class="activities-section" style="margin-bottom: 20px;">';
+            html += '<h5 style="color: #2ecc71; margin-bottom: 15px; font-size: 1.3em;">🎯 Aktiviteler:</h5>';
+            
+            day.activities.forEach((activity, actIndex) => {
+                const categoryIcons = {
+                    'nature': '🏞️',
+                    'culture': '🏛️',
+                    'gastronomy': '🍽️',
+                    'adventure': '🎢'
+                };
+                const icon = categoryIcons[activity.category] || '📍';
+                
+                html += `
+                    <div class="activity" style="background: white; padding: 20px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 3px 10px rgba(0,0,0,0.08);">
+                        <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 12px;">
+                            <span style="background: linear-gradient(135deg, #2ecc71, #27ae60); color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.2em; font-weight: bold; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">${actIndex + 1}</span>
+                            <div style="flex: 1;">
+                                <h5 style="margin: 0; font-size: 1.3em; color: #2c3e50;">${icon} ${activity.name}</h5>
+                            </div>
+                        </div>
+                        <p style="margin: 12px 0; color: #6c757d; line-height: 1.6;">${activity.description}</p>
+                        <div class="activity-details" style="display: flex; gap: 12px; flex-wrap: wrap; margin-top: 12px;">
+                            <span style="background: linear-gradient(135deg, #e8f5e9, #c8e6c9); padding: 8px 16px; border-radius: 25px; font-weight: 600; color: #27ae60;">⏱️ ${activity.duration} saat</span>
+                            <span style="background: linear-gradient(135deg, #fff3e0, #ffe0b2); padding: 8px 16px; border-radius: 25px; font-weight: 600; color: #f57c00;">💰 ${activity.cost.toLocaleString('tr-TR')} ₺</span>
+                            <span style="background: linear-gradient(135deg, #e3f2fd, #bbdefb); padding: 8px 16px; border-radius: 25px; font-weight: 600; color: #1976d2;">🏷️ ${getCategoryName(activity.category)}</span>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+        } else {
+            html += `
+                <div style="padding: 20px; background: linear-gradient(135deg, #fff3cd, #ffe8a1); border-radius: 12px; margin-bottom: 20px; border-left: 4px solid #ffc107;">
+                    <p style="margin: 0; color: #856404; font-weight: 500;">ℹ️ Bu gün için özel aktivite planlanmamış. Serbest zaman veya dinlenme günü.</p>
+                </div>
+            `;
+        }
+        
+        html += '<div class="day-summary" style="background: linear-gradient(135deg, #f8f9fa, #e9ecef); padding: 20px; border-radius: 12px; margin-top: 20px;">';
+        
+        if (day.accommodation) {
+            const accCost = day.accommodation.cost_per_night || day.accommodation.cost || 0;
+            html += `
+                <div style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+                    <div><strong>🏨 Konaklama:</strong> ${day.accommodation.name}</div>
+                    <span style="color: #27ae60; font-weight: bold; font-size: 1.1em;">${accCost.toLocaleString('tr-TR')} ₺</span>
+                </div>
+            `;
+        }
+        
+        html += `
+                <div style="margin-top: 20px; padding-top: 20px; border-top: 3px dashed ${tierColors[plan.tier]};">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <strong style="font-size: 1.2em; color: #2c3e50;">💵 Günlük Toplam:</strong>
+                        <span style="color: ${tierColors[plan.tier]}; font-size: 1.5em; font-weight: bold;">${day.daily_cost.toLocaleString('tr-TR')} ₺</span>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        html += '</div></div>';
+    });
+    
+    html += `
+        </div>
+        <div class="plan-footer" style="background: linear-gradient(135deg, ${tierColors[plan.tier]}, ${tierColors[plan.tier]}dd); color: white; padding: 30px; border-radius: 15px; margin-top: 30px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+            <h3 style="margin: 0 0 15px 0; font-size: 2em;">🎯 ${tierNames[plan.tier]} - Genel Özet</h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 20px; margin: 20px 0;">
+                <div>
+                    <div style="font-size: 2.5em; margin-bottom: 5px;">${tierIcons[plan.tier]}</div>
+                    <div style="font-size: 2em; font-weight: bold;">${plan.cost_breakdown.total.toLocaleString('tr-TR')} ₺</div>
+                    <div style="opacity: 0.9; margin-top: 5px;">Toplam Maliyet</div>
+                </div>
+                <div>
+                    <div style="font-size: 2.5em; margin-bottom: 5px;">📅</div>
+                    <div style="font-size: 2em; font-weight: bold;">${plan.daily_itinerary.length}</div>
+                    <div style="opacity: 0.9; margin-top: 5px;">Gün</div>
+                </div>
+                <div>
+                    <div style="font-size: 2.5em; margin-bottom: 5px;">📍</div>
+                    <div style="font-size: 2em; font-weight: bold;">${plan.daily_itinerary.reduce((sum, day) => sum + (day.activities?.length || 0), 0)}</div>
+                    <div style="opacity: 0.9; margin-top: 5px;">Aktivite</div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    planContent.innerHTML = html;
+}
+
+// Helper function
+function getCategoryName(category) {
+    const categories = {
+        'nature': 'Doğa',
+        'culture': 'Kültür',
+        'gastronomy': 'Gastronomi',
+        'adventure': 'Macera',
+        'history': 'Tarih'
+    };
+    return categories[category] || category;
+}
+
+// Load and display POIs
+async function loadPOIs() {
+    try {
+        const response = await fetch('/api/pois');
+        const data = await response.json();
+        
+        if (data.success) {
+            displayPOIs(data.pois);
+        }
+    } catch (error) {
+        console.error('POI yüklenirken hata:', error);
+    }
+}
+
+// Display POIs
+function displayPOIs(pois) {
+    const poiList = document.getElementById('poiList');
+    if (!poiList) return;
+    
+    let html = '';
+    pois.forEach(poi => {
+        html += `
+            <div class="poi-card">
+                <div class="poi-content">
+                    <h3>${poi.name}</h3>
+                    <span class="poi-category">${getCategoryName(poi.category)}</span>
+                    <p class="poi-description">${poi.description}</p>
+                    <div class="poi-info">
+                        <div class="poi-rating">⭐ ${poi.rating}</div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    poiList.innerHTML = html;
+}
+
+// Show notification
+function showNotification(message, type = 'info') {
+    let notification = document.getElementById('notification');
+    if (!notification) {
+        notification = document.createElement('div');
+        notification.id = 'notification';
+        notification.className = 'notification';
+        document.body.appendChild(notification);
+    }
+    
+    notification.textContent = message;
+    notification.className = `notification notification-${type} show`;
+    
+    setTimeout(() => {
+        notification.classList.remove('show');
+    }, 4000);
+}
+
+// Show loading overlay with animation
+function showLoadingOverlay() {
+    let overlay = document.getElementById('loadingOverlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'loadingOverlay';
+        overlay.className = 'loading-overlay';
+        overlay.innerHTML = `
+            <div class="loading-content">
+                <div class="loading-spinner">
+                    <div class="spinner-ring"></div>
+                    <div class="spinner-ring"></div>
+                    <div class="spinner-ring"></div>
+                </div>
+                <h2 class="loading-title">🗺️ En Uygun Rotalar Hazırlanıyor</h2>
+                <div class="loading-steps">
+                    <div class="loading-step active" data-step="1">
+                        <span class="step-icon">📍</span>
+                        <span class="step-text">Konum analizi yapılıyor...</span>
+                    </div>
+                    <div class="loading-step" data-step="2">
+                        <span class="step-icon">🔍</span>
+                        <span class="step-text">Gezilecek yerler bulunuyor...</span>
+                    </div>
+                    <div class="loading-step" data-step="3">
+                        <span class="step-icon">💰</span>
+                        <span class="step-text">Bütçe planları hesaplanıyor...</span>
+                    </div>
+                    <div class="loading-step" data-step="4">
+                        <span class="step-icon">✨</span>
+                        <span class="step-text">Rotalar optimize ediliyor...</span>
+                    </div>
+                </div>
+                <div class="loading-progress">
+                    <div class="progress-bar"></div>
+                </div>
+                <p class="loading-tip">💡 İpucu: Farklı bütçe seviyeleri arasında geçiş yapabilirsiniz</p>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+    }
+    
+    // Animate steps
+    let currentStep = 1;
+    const stepInterval = setInterval(() => {
+        if (currentStep > 4) {
+            clearInterval(stepInterval);
+            return;
+        }
+        
+        // Deactivate all steps
+        overlay.querySelectorAll('.loading-step').forEach(step => {
+            step.classList.remove('active');
+        });
+        
+        // Activate current step
+        const step = overlay.querySelector(`[data-step="${currentStep}"]`);
+        if (step) {
+            step.classList.add('active');
+        }
+        
+        currentStep++;
+    }, 1500);
+    
+    // Store interval ID for cleanup
+    overlay.dataset.intervalId = stepInterval;
+    
+    // Show overlay
+    setTimeout(() => overlay.classList.add('show'), 10);
+}
+
+// Hide loading overlay
+function hideLoadingOverlay() {
+    const overlay = document.getElementById('loadingOverlay');
+    if (overlay) {
+        // Clear interval
+        if (overlay.dataset.intervalId) {
+            clearInterval(parseInt(overlay.dataset.intervalId));
+        }
+        
+        overlay.classList.remove('show');
+        setTimeout(() => {
+            if (overlay.parentNode) {
+                overlay.parentNode.removeChild(overlay);
+            }
+        }, 400);
+    }
+}
+}
