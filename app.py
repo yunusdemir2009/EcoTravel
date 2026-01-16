@@ -8,6 +8,10 @@ import os
 app = Flask(__name__)
 CORS(app)
 
+# Configuration constants
+DEFAULT_CITY = "Ankara"
+POI_SEARCH_RADIUS_KM = 500  # Maximum distance to search for POIs
+
 # Sample POI data (Points of Interest)
 POI_DATABASE = [
     {
@@ -164,6 +168,12 @@ ACCOMMODATION_DATABASE = [
 
 def calculate_distance(loc1, loc2):
     """Calculate distance between two locations in km"""
+    # Validate coordinates
+    if not (-90 <= loc1["lat"] <= 90) or not (-90 <= loc2["lat"] <= 90):
+        raise ValueError("Latitude must be between -90 and 90")
+    if not (-180 <= loc1["lng"] <= 180) or not (-180 <= loc2["lng"] <= 180):
+        raise ValueError("Longitude must be between -180 and 180")
+    
     return geodesic((loc1["lat"], loc1["lng"]), (loc2["lat"], loc2["lng"])).km
 
 def calculate_transport_cost(distance_km, tier):
@@ -191,14 +201,15 @@ def find_pois_near_route(start_loc, end_loc, preferences, max_pois=5):
     
     for poi in POI_DATABASE:
         # Filter by category if specified
-        if preferences and poi["category"] not in preferences:
-            continue
+        if preferences is not None and len(preferences) > 0:
+            if poi["category"] not in preferences:
+                continue
             
         # Calculate if POI is reasonably close to start or end
         dist_to_start = calculate_distance(start_loc, poi["location"])
         dist_to_end = calculate_distance(end_loc, poi["location"])
         
-        if dist_to_start < 500 or dist_to_end < 500:  # Within 500km
+        if dist_to_start < POI_SEARCH_RADIUS_KM or dist_to_end < POI_SEARCH_RADIUS_KM:
             poi_copy = poi.copy()
             poi_copy["distance_from_start"] = round(dist_to_start, 2)
             pois.append(poi_copy)
@@ -267,7 +278,7 @@ def create_itinerary(start_loc, end_loc, days, budget, tier, preferences):
         # Add accommodation (except last day if returning home)
         if day < days or current_location != start_loc:
             # Find nearest city for accommodation
-            nearest_city = "Ankara"  # Default
+            nearest_city = DEFAULT_CITY
             if day_pois:
                 nearest_city = day_pois[-1]["city"]
             

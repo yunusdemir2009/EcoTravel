@@ -96,10 +96,10 @@ async function handleTravelFormSubmit(e) {
                 behavior: 'smooth' 
             });
         } else {
-            alert('Hata: ' + data.error);
+            showNotification('Hata: ' + data.error, 'error');
         }
     } catch (error) {
-        alert('Bir hata oluştu: ' + error.message);
+        showNotification('Bir hata oluştu: ' + error.message, 'error');
     } finally {
         submitBtn.textContent = originalText;
         submitBtn.disabled = false;
@@ -351,13 +351,34 @@ async function handleReviewSubmit(e) {
         const data = await response.json();
         
         if (data.success) {
-            alert('Yorumunuz başarıyla gönderildi!');
+            showNotification('Yorumunuz başarıyla gönderildi!', 'success');
             document.getElementById('reviewModal').style.display = 'none';
             document.getElementById('reviewForm').reset();
         } else {
-            alert('Hata: ' + data.error);
+            showNotification('Hata: ' + data.error, 'error');
         }
     } catch (error) {
-        alert('Bir hata oluştu: ' + error.message);
+        showNotification('Bir hata oluştu: ' + error.message, 'error');
     }
+}
+
+// Show notification message
+function showNotification(message, type = 'info') {
+    // Create notification element if it doesn't exist
+    let notification = document.getElementById('notification');
+    if (!notification) {
+        notification = document.createElement('div');
+        notification.id = 'notification';
+        notification.className = 'notification';
+        document.body.appendChild(notification);
+    }
+    
+    // Set message and type
+    notification.textContent = message;
+    notification.className = `notification notification-${type} show`;
+    
+    // Auto-hide after 3 seconds
+    setTimeout(() => {
+        notification.classList.remove('show');
+    }, 3000);
 }
