@@ -460,7 +460,7 @@ def submit_review():
 
 @app.route('/api/geocode', methods=['POST'])
 def geocode():
-    """Geocode a location name to coordinates"""
+    """Geocode a location name to coordinates - GLOBAL SUPPORT"""
     try:
         data = request.json
         location_name = data.get('location')
@@ -473,10 +473,8 @@ def geocode():
         
         # Normalize location name for lookup
         normalized_name = location_name.lower().strip()
-        # Remove "turkey", "türkiye" from the search
-        normalized_name = normalized_name.replace(", turkey", "").replace(", türkiye", "")
         
-        # Try to find in our Turkish cities database first
+        # Try to find in our Turkish cities database first (for faster lookup)
         for key, value in TURKISH_CITIES.items():
             if key in normalized_name or normalized_name in key:
                 return jsonify({
@@ -488,14 +486,16 @@ def geocode():
                     }
                 })
         
-        # Fallback: Try geopy if available (might not work in restricted environments)
+        # GLOBAL GEOCODING: Use geopy Nominatim for worldwide locations
         try:
             from geopy.geocoders import Nominatim
-            geolocator = Nominatim(user_agent="EcoTravel/1.0", timeout=5)
+            import time
             
-            # Add Turkey to improve results
-            query = f"{location_name}, Turkey"
-            location = geolocator.geocode(query)
+            geolocator = Nominatim(user_agent="EcoTravel-Global/2.0", timeout=10)
+            
+            # Search globally - don't restrict to Turkey
+            print(f"Geocoding location: {location_name}")
+            location = geolocator.geocode(location_name, addressdetails=True, language='en')
             
             if location:
                 return jsonify({
@@ -512,7 +512,7 @@ def geocode():
         # If nothing found, return error
         return jsonify({
             "success": False,
-            "error": f"'{location_name}' için konum bulunamadı. Lütfen il veya ilçe adını deneyin (örn: İstanbul, Ankara, Antalya)"
+            "error": f"Location '{location_name}' not found. Please try with city name, address, or landmark (e.g., 'Paris, France', 'New York', 'Tokyo')"
         }), 404
     
     except Exception as e:
@@ -588,6 +588,99 @@ def reverse_geocode():
         return jsonify({
             "success": True,
             "location_name": f"Lat: {lat:.4f}, Lng: {lng:.4f}"
+        })
+    
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 400
+
+@app.route('/api/pois-by-category', methods=['POST'])
+def get_pois_by_category():
+    """Get POIs along route grouped by category - GLOBAL SUPPORT"""
+    try:
+        data = request.json
+        start_lat = float(data.get('start_lat'))
+        start_lng = float(data.get('start_lng'))
+        end_lat = float(data.get('end_lat', start_lat))
+        end_lng = float(data.get('end_lng', start_lng))
+        radius_km = int(data.get('radius_km', 50))
+        
+        # Build location objects
+        start_location = {"lat": start_lat, "lng": start_lng}
+        end_location = {"lat": end_lat, "lng": end_lng}
+        
+        # Fetch POIs using external API
+        all_pois = []
+        if USE_EXTERNAL_API and places_api:
+            try:
+                external_places = places_api.find_places_along_route(
+                    start_lat, start_lng, end_lat, end_lng,
+                    categories=None,  # Get all categories
+                    max_distance_km=radius_km
+                )
+                all_pois.extend(external_places)
+            except Exception as e:
+                print(f"Error fetching external POIs: {e}")
+        
+        # Also include local database POIs
+        for poi in POI_DATABASE:
+            dist_to_start = calculate_distance(start_location, poi["location"])
+            dist_to_end = calculate_distance(end_location, poi["location"])
+            
+            if dist_to_start < radius_km or dist_to_end < radius_km:
+                all_pois.append({
+                    "name": poi["name"],
+                    "location": poi["location"],
+                    "category": poi["category"],
+                    "description": poi["description"],
+                    "visit_duration": poi["visit_duration"],
+                    "cost_basic": poi["cost_basic"],
+                    "cost_mid": poi["cost_mid"],
+                    "cost_luxury": poi["cost_luxury"],
+                    "rating": poi["rating"],
+                    "distance_from_route": min(dist_to_start, dist_to_end),
+                    "source": "local",
+                    "city": poi["city"]
+                })
+        
+        # Group POIs by category
+        categorized_pois = {
+            "attractions": [],
+            "accommodation": [],
+            "gastronomy": [],
+            "entertainment": [],
+            "nature": [],
+            "culture": []
+        }
+        
+        for poi in all_pois:
+            category = poi.get("category", "attractions")
+            # Map old 'attraction' to 'attractions'
+            if category == "attraction":
+                category = "attractions"
+            
+            if category in categorized_pois:
+                categorized_pois[category].append(poi)
+            else:
+                # Unknown category goes to attractions
+                categorized_pois["attractions"].append(poi)
+        
+        # Sort each category by rating and distance
+        for category in categorized_pois:
+            categorized_pois[category].sort(
+                key=lambda x: (-x.get("rating", 0), x.get("distance_from_route", 999))
+            )
+        
+        # Count totals
+        category_counts = {cat: len(pois) for cat, pois in categorized_pois.items()}
+        
+        return jsonify({
+            "success": True,
+            "pois": categorized_pois,
+            "counts": category_counts,
+            "total": sum(category_counts.values())
         })
     
     except Exception as e:

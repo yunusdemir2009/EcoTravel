@@ -1,38 +1,76 @@
-# 🌍 EcoTravel - Akıllı Gezi Planlayıcı
+# 🌍 EcoTravel - Akıllı Gezi Planlayıcı (Global Edition)
 
-EcoTravel, kullanıcıların bütçelerine ve zamanlarına göre kişiselleştirilmiş seyahat planları oluşturmalarını sağlayan akıllı bir gezi planlama uygulamasıdır. **Artık herhangi bir adres için dinamik rotalar oluşturabilir!**
+EcoTravel, kullanıcıların bütçelerine ve zamanlarına göre kişiselleştirilmiş seyahat planları oluşturmalarını sağlayan akıllı bir gezi planlama uygulamasıdır. **🌍 Artık dünyanın her yerinden konum seçebilir ve dinamik rotalar oluşturabilirsiniz!**
 
 ## ✨ Temel Özellikler
 
-### 🆕 1. Dinamik Rota Oluşturma (YENİ!)
-- 🗺️ **Herhangi bir adres** için otomatik rota oluşturma
-- 🌐 **OpenStreetMap API** ile gerçek zamanlı yer keşfi
-- 📍 Önceden tanımlı veritabanı **dışında sınırsız yerler**
-- 🎯 Akıllı rota optimizasyonu ve yer önerileri
-- 🔄 Sürekli güncel veriler (kullanıcı katkılı OSM)
+### 🌍 1. GLOBAL Konum Desteği (YENİ!)
+- **Dünyanın her yerinden** başlangıç ve hedef konum seçimi
+- Paris, London, New York, Tokyo, Sydney - SINIR YOK!
+- Şehir, ülke, adres veya landmark ile arama
+- GPS ile otomatik konum alma
+- OpenStreetMap Nominatim ile gerçek zamanlı geocoding
 
-### 2. Konum Bazlı Planlama
-- GPS veya manuel konum girişi ile başlangıç noktası belirleme
-- İsteğe bağlı hedef konum seçimi
-- Gidiş-dönüş veya tek yön rotalar
-- **Türkiye'nin her yerini** destekler (40+ şehir + tüm ilçe/mahalleler)
+### 🗺️ 2. Dinamik Rota Oluşturma
+- Herhangi bir lokasyon için otomatik rota oluşturma
+- **OpenStreetMap API** ile gerçek zamanlı yer keşfi
+- Sınırsız yerler - önceden tanımlı veritabanı gerekmez
+- Akıllı rota optimizasyonu ve yer önerileri
 
-### 3. Bütçe ve Gün Bazlı Planlama
-- Kullanıcının belirlediği bütçe ve seyahat süresine göre otomatik rota önerisi
-- Minimum ve maksimum harcama tahminleri
-- Gerçek zamanlı bütçe kontrolü
+### 📍 3. Kapsamlı POI (Points of Interest) Kategorileri
+Artık her kategoride yerleri görebilirsiniz:
 
-### 4. Üç Farklı Seviye Plan
+#### 🏛️ Gezilecek Yerler (Attractions)
+- Müzeler, galeriler
+- Tarihi kaleler ve anıtlar
+- Arkeolojik sitler
+- Viewpoint'ler (manzara noktaları)
+- Tema parkları ve hayvanat bahçeleri
+
+#### 🏨 Konaklama (Accommodation)
+- Oteller (tüm kategoriler)
+- Hosteller
+- Pansiyonlar
+- Moteller
+- Apart oteller
+
+#### 🍽️ Yeme & İçme (Gastronomy)
+- Restoranlar
+- Kafeler
+- Fast food
+- Barlar ve pub'lar
+- Food court'lar
+
+#### 🎭 Eğlence (Entertainment)
+- Sinemalar
+- Tiyatrolar
+- Gece kulüpleri
+- Eğlence merkezleri
+- Su parkları
+
+#### 🌲 Doğa & Outdoor (Nature)
+- Dağ zirveleri
+- Şelaleler
+- Plajlar
+- Termal kaynaklar
+- Parklar ve doğa rezervleri
+
+#### 🏛️ Tarih & Kültür (History & Culture)
+- Tarihi yapılar
+- Antik kentler
+- Harabe ve kalıntılar
+- Kültürel miras alanları
+
+### 💰 3 Farklı Seviye Plan
 - **Ekonomik Plan (Basic)**: En uygun fiyatlı seçenekler, hostel/pansiyon konaklaması, toplu taşıma
 - **Orta Seviye Plan**: Konforlu ama ekonomik seçenekler, 3 yıldızlı oteller, araç kiralama
 - **Lüks Plan**: Maksimum konfor ve deneyim, 5 yıldızlı oteller, özel araç ve şoför
 
 ### 5. Akıllı Rota Önerisi
-- Rota üzerindeki gezilecek yerler (POI - Points of Interest)
-- **Gerçek zamanlı OSM verisi** + yerel veritabanı hibrit yaklaşımı
-- Etkinlik önerileri
-- Konaklama önerileri
-- Yemek ve ulaşım planlaması
+- Rota üzerindeki tüm POI kategorileri
+- **Gerçek zamanlı OSM verisi** - sürekli güncellenen bilgiler
+- Mesafe ve konum bazlı akıllı sıralama
+- Detaylı maliyet hesaplamaları (kategori bazlı)
 
 ### 6. Detaylı Maliyet Hesaplaması
 - Ulaşım maliyetleri

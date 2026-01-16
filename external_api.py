@@ -83,43 +83,79 @@ class PlacesAPI:
         categories: List[str] = None
     ) -> List[Dict]:
         """
-        Fetch nearby places using Overpass API (OpenStreetMap)
+        Fetch nearby places using Overpass API (OpenStreetMap) - GLOBAL SUPPORT
+        Supports: Attractions, Hotels, Restaurants, Entertainment, Nature, Culture
         """
         places = []
-        
-        # Map our categories to OSM tags
-        category_mapping = {
-            'nature': ['peak', 'volcano', 'beach', 'waterfall', 'viewpoint', 'nature_reserve'],
-            'culture': ['museum', 'castle', 'monument', 'archaeological_site', 'heritage'],
-            'gastronomy': ['restaurant', 'cafe', 'fast_food'],
-            'adventure': ['theme_park', 'water_park', 'zoo']
-        }
-        
-        # Build Overpass query
-        tags = []
-        if categories:
-            for cat in categories:
-                if cat in category_mapping:
-                    tags.extend(category_mapping[cat])
-        else:
-            # Default: fetch all tourism and attraction points
-            tags = ['museum', 'castle', 'viewpoint', 'attraction', 'artwork']
         
         # Radius in meters
         radius_m = radius_km * 1000
         
-        # Overpass QL query
+        # Comprehensive Overpass QL query for ALL POI types
         query = f"""
-        [out:json][timeout:25];
+        [out:json][timeout:30];
         (
-          node["tourism"](around:{radius_m},{lat},{lng});
-          way["tourism"](around:{radius_m},{lat},{lng});
+          /* Tourist Attractions */
+          node["tourism"="attraction"](around:{radius_m},{lat},{lng});
+          way["tourism"="attraction"](around:{radius_m},{lat},{lng});
+          node["tourism"="museum"](around:{radius_m},{lat},{lng});
+          way["tourism"="museum"](around:{radius_m},{lat},{lng});
+          node["tourism"="viewpoint"](around:{radius_m},{lat},{lng});
+          node["tourism"="gallery"](around:{radius_m},{lat},{lng});
+          node["tourism"="artwork"](around:{radius_m},{lat},{lng});
+          node["tourism"="theme_park"](around:{radius_m},{lat},{lng});
+          way["tourism"="theme_park"](around:{radius_m},{lat},{lng});
+          node["tourism"="zoo"](around:{radius_m},{lat},{lng});
+          way["tourism"="zoo"](around:{radius_m},{lat},{lng});
+          
+          /* Accommodation */
+          node["tourism"="hotel"](around:{radius_m},{lat},{lng});
+          way["tourism"="hotel"](around:{radius_m},{lat},{lng});
+          node["tourism"="hostel"](around:{radius_m},{lat},{lng});
+          node["tourism"="guest_house"](around:{radius_m},{lat},{lng});
+          node["tourism"="motel"](around:{radius_m},{lat},{lng});
+          node["tourism"="apartment"](around:{radius_m},{lat},{lng});
+          
+          /* Restaurants & Food */
+          node["amenity"="restaurant"](around:{radius_m},{lat},{lng});
+          node["amenity"="cafe"](around:{radius_m},{lat},{lng});
+          node["amenity"="fast_food"](around:{radius_m},{lat},{lng});
+          node["amenity"="bar"](around:{radius_m},{lat},{lng});
+          node["amenity"="pub"](around:{radius_m},{lat},{lng});
+          node["amenity"="food_court"](around:{radius_m},{lat},{lng});
+          
+          /* Entertainment */
+          node["amenity"="cinema"](around:{radius_m},{lat},{lng});
+          node["amenity"="theatre"](around:{radius_m},{lat},{lng});
+          node["amenity"="nightclub"](around:{radius_m},{lat},{lng});
+          node["leisure"="amusement_arcade"](around:{radius_m},{lat},{lng});
+          node["leisure"="water_park"](around:{radius_m},{lat},{lng});
+          way["leisure"="water_park"](around:{radius_m},{lat},{lng});
+          
+          /* Nature & Outdoor */
           node["natural"="peak"](around:{radius_m},{lat},{lng});
+          node["natural"="volcano"](around:{radius_m},{lat},{lng});
           node["natural"="waterfall"](around:{radius_m},{lat},{lng});
           node["natural"="beach"](around:{radius_m},{lat},{lng});
+          way["natural"="beach"](around:{radius_m},{lat},{lng});
+          node["natural"="hot_spring"](around:{radius_m},{lat},{lng});
+          node["leisure"="park"](around:{radius_m},{lat},{lng});
+          way["leisure"="park"](around:{radius_m},{lat},{lng});
+          node["leisure"="nature_reserve"](around:{radius_m},{lat},{lng});
+          way["leisure"="nature_reserve"](around:{radius_m},{lat},{lng});
+          
+          /* Historical & Cultural */
           node["historic"](around:{radius_m},{lat},{lng});
+          way["historic"](around:{radius_m},{lat},{lng});
+          node["historic"="castle"](around:{radius_m},{lat},{lng});
+          way["historic"="castle"](around:{radius_m},{lat},{lng});
+          node["historic"="monument"](around:{radius_m},{lat},{lng});
+          node["historic"="archaeological_site"](around:{radius_m},{lat},{lng});
+          way["historic"="archaeological_site"](around:{radius_m},{lat},{lng});
+          node["historic"="ruins"](around:{radius_m},{lat},{lng});
+          way["historic"="ruins"](around:{radius_m},{lat},{lng});
         );
-        out center 50;
+        out center 100;
         """
         
         try:
@@ -202,47 +238,139 @@ class PlacesAPI:
             return None
     
     def _determine_category(self, tags: Dict) -> str:
-        """Determine category from OSM tags"""
-        if tags.get('tourism') in ['museum', 'artwork', 'gallery']:
-            return 'culture'
-        elif tags.get('tourism') in ['viewpoint', 'attraction']:
-            return 'nature'
-        elif tags.get('natural') in ['peak', 'waterfall', 'beach', 'hot_spring']:
-            return 'nature'
-        elif tags.get('historic'):
-            return 'culture'
-        elif tags.get('amenity') in ['restaurant', 'cafe', 'bar']:
+        """Determine detailed category from OSM tags"""
+        # Accommodation
+        if tags.get('tourism') in ['hotel', 'hostel', 'guest_house', 'motel', 'apartment']:
+            return 'accommodation'
+        
+        # Food & Drink
+        if tags.get('amenity') in ['restaurant', 'cafe', 'fast_food', 'bar', 'pub', 'food_court']:
             return 'gastronomy'
-        else:
+        
+        # Entertainment
+        if tags.get('amenity') in ['cinema', 'theatre', 'nightclub']:
+            return 'entertainment'
+        if tags.get('leisure') in ['amusement_arcade', 'water_park']:
+            return 'entertainment'
+        
+        # Culture & History
+        if tags.get('tourism') in ['museum', 'gallery', 'artwork']:
+            return 'culture'
+        if tags.get('historic'):
+            return 'culture'
+        
+        # Nature & Outdoor
+        if tags.get('natural') in ['peak', 'volcano', 'waterfall', 'beach', 'hot_spring']:
             return 'nature'
+        if tags.get('leisure') in ['park', 'nature_reserve']:
+            return 'nature'
+        if tags.get('tourism') in ['viewpoint']:
+            return 'nature'
+        
+        # Theme parks & Attractions
+        if tags.get('tourism') in ['attraction', 'theme_park', 'zoo']:
+            return 'attraction'
+        
+        return 'attraction'
     
     def _estimate_cost(self, tags: Dict, tier: str) -> float:
-        """Estimate visit cost based on tags and tier"""
+        """Estimate visit/service cost based on tags and tier - GLOBAL PRICING"""
+        tourism_type = tags.get('tourism', 'default')
+        amenity_type = tags.get('amenity', 'default')
+        
+        # Base costs in Turkish Lira (2026 estimates)
         base_costs = {
-            'basic': {'museum': 150, 'viewpoint': 0, 'attraction': 200, 'default': 100},
-            'mid': {'museum': 300, 'viewpoint': 50, 'attraction': 400, 'default': 200},
-            'luxury': {'museum': 600, 'viewpoint': 150, 'attraction': 800, 'default': 400}
+            'basic': {
+                'museum': 150, 'attraction': 200, 'viewpoint': 0, 'theme_park': 800,
+                'hotel': 600, 'hostel': 300, 'guest_house': 400,
+                'restaurant': 250, 'cafe': 100, 'fast_food': 120, 'bar': 150,
+                'cinema': 200, 'theatre': 350, 'nightclub': 300,
+                'default': 100
+            },
+            'mid': {
+                'museum': 350, 'attraction': 450, 'viewpoint': 50, 'theme_park': 1500,
+                'hotel': 1500, 'hostel': 600, 'guest_house': 800,
+                'restaurant': 600, 'cafe': 250, 'fast_food': 200, 'bar': 300,
+                'cinema': 350, 'theatre': 650, 'nightclub': 600,
+                'default': 300
+            },
+            'luxury': {
+                'museum': 700, 'attraction': 900, 'viewpoint': 200, 'theme_park': 3000,
+                'hotel': 4500, 'hostel': 1200, 'guest_house': 1800,
+                'restaurant': 1500, 'cafe': 600, 'fast_food': 400, 'bar': 800,
+                'cinema': 600, 'theatre': 1200, 'nightclub': 1500,
+                'default': 800
+            }
         }
         
-        tourism_type = tags.get('tourism', 'default')
         tier_costs = base_costs.get(tier, base_costs['basic'])
         
-        return tier_costs.get(tourism_type, tier_costs['default'])
+        # Try tourism type first
+        if tourism_type != 'default' and tourism_type in tier_costs:
+            return tier_costs[tourism_type]
+        
+        # Try amenity type
+        if amenity_type != 'default' and amenity_type in tier_costs:
+            return tier_costs[amenity_type]
+        
+        # Natural attractions are usually free or very cheap
+        if tags.get('natural'):
+            return tier_costs.get('viewpoint', 0)
+        
+        return tier_costs['default']
     
     def _estimate_duration(self, tags: Dict) -> int:
-        """Estimate visit duration in hours"""
+        """Estimate visit/stay duration in hours"""
         tourism_type = tags.get('tourism', 'attraction')
+        amenity_type = tags.get('amenity', '')
         
+        # Accommodation - duration in nights (will be converted to hours: 24h)
+        if tourism_type in ['hotel', 'hostel', 'guest_house', 'motel']:
+            return 24  # 1 night = 24 hours (for calculation purposes)
+        
+        # Attractions & Culture
         durations = {
             'museum': 3,
             'castle': 2,
             'viewpoint': 1,
             'attraction': 2,
             'monument': 1,
-            'archaeological_site': 3
+            'archaeological_site': 3,
+            'theme_park': 6,
+            'zoo': 4,
+            'gallery': 2,
+            'artwork': 1,
         }
         
-        return durations.get(tourism_type, 2)
+        # Entertainment
+        entertainment_durations = {
+            'cinema': 2,
+            'theatre': 3,
+            'nightclub': 4,
+        }
+        
+        # Food & Drink
+        food_durations = {
+            'restaurant': 2,
+            'cafe': 1,
+            'fast_food': 1,
+            'bar': 2,
+            'pub': 2,
+        }
+        
+        # Check all duration maps
+        if tourism_type in durations:
+            return durations[tourism_type]
+        if amenity_type in entertainment_durations:
+            return entertainment_durations[amenity_type]
+        if amenity_type in food_durations:
+            return food_durations[amenity_type]
+        
+        # Natural sites - usually longer visits
+        if tags.get('natural'):
+            return 3
+        
+        return 2  # Default
     
     def _get_city_name(self, lat: float, lng: float) -> str:
         """Get city name from coordinates"""

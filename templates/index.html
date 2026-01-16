@@ -23,20 +23,20 @@
                     <div class="form-group">
                         <label for="startLocation">Başlangıç Konumu:</label>
                         <div class="location-input-group">
-                            <input type="text" id="startLocation" placeholder="Örnek: Ankara, Çankaya, Kızılay" required>
+                            <input type="text" id="startLocation" placeholder="Şehir, ülke veya adres (örn: Paris, London, New York, Istanbul)" required>
                             <button type="button" id="useGPSBtn" class="gps-btn" title="Mevcut konumumu kullan">
                                 📍 GPS Kullan
                             </button>
                         </div>
-                        <small>İl, ilçe veya mahalle yazın. GPS ile otomatik konum alabilirsiniz.</small>
+                        <small>🌍 Dünyanın herhangi bir yerini yazabilirsiniz! GPS ile otomatik konum alabilirsiniz.</small>
                         <input type="hidden" id="startLat" value="39.9334">
                         <input type="hidden" id="startLng" value="32.8597">
                     </div>
 
                     <div class="form-group">
                         <label for="endLocation">Gideceğiniz Yer (İsteğe Bağlı):</label>
-                        <input type="text" id="endLocation" placeholder="Örnek: İstanbul, Beyoğlu - Gidiş-dönüş için boş bırakın">
-                        <small>Hedef il, ilçe veya mahalle yazın. Boş bırakırsanız gidiş-dönüş plan hazırlanır.</small>
+                        <input type="text" id="endLocation" placeholder="Hedef şehir, ülke veya adres (örn: Rome, Barcelona) - Gidiş-dönüş için boş bırakın">
+                        <small>🌍 Global destinasyon desteği! Boş bırakırsanız gidiş-dönüş plan hazırlanır.</small>
                         <input type="hidden" id="endLat">
                         <input type="hidden" id="endLng">
                     </div>
@@ -78,6 +78,13 @@
                         <button type="button" class="btn-demo" onclick="loadDemo(2)">🎭 İstanbul Turu (3 gün)</button>
                         <button type="button" class="btn-demo" onclick="loadDemo(3)">🌄 Kapadokya (4 gün)</button>
                         <button type="button" class="btn-demo" onclick="loadDemo(4)">🌊 İzmir → Fethiye (5 gün)</button>
+                    </div>
+                    <h4 style="margin-top: 20px;">🌍 Global Senaryolar:</h4>
+                    <div class="demo-buttons">
+                        <button type="button" class="btn-demo" onclick="loadDemo(5)">🗼 Paris Turu (5 gün)</button>
+                        <button type="button" class="btn-demo" onclick="loadDemo(6)">🗽 New York → Washington DC (7 gün)</button>
+                        <button type="button" class="btn-demo" onclick="loadDemo(7)">🌸 Tokyo Turu (6 gün)</button>
+                        <button type="button" class="btn-demo" onclick="loadDemo(8)">🎨 Rome → Venice (5 gün)</button>
                     </div>
                 </div>
             </section>

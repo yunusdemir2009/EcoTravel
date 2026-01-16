@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', function() {
 window.loadDemo = function(scenarioId) {
     try {
         const scenarios = {
+            // Turkish scenarios
             1: {
                 startLocation: 'Ankara',
                 startLat: 39.9334,
@@ -23,7 +24,7 @@ window.loadDemo = function(scenarioId) {
                 endLat: 36.8969,
                 endLng: 30.7133,
                 days: 7,
-                budget: 25000,  // 2026 gerçekçi bütçe
+                budget: 25000,
                 preferences: ['nature', 'culture']
             },
             2: {
@@ -34,7 +35,7 @@ window.loadDemo = function(scenarioId) {
                 endLat: null,
                 endLng: null,
                 days: 3,
-                budget: 12000,  // 2026 gerçekçi bütçe
+                budget: 12000,
                 preferences: ['culture', 'gastronomy']
             },
             3: {
@@ -45,7 +46,7 @@ window.loadDemo = function(scenarioId) {
                 endLat: 38.6431,
                 endLng: 34.8286,
                 days: 4,
-                budget: 18000,  // 2026 gerçekçi bütçe
+                budget: 18000,
                 preferences: ['nature', 'culture']
             },
             4: {
@@ -56,8 +57,53 @@ window.loadDemo = function(scenarioId) {
                 endLat: 36.6542,
                 endLng: 29.1256,
                 days: 5,
-                budget: 20000,  // 2026 gerçekçi bütçe
+                budget: 20000,
                 preferences: ['nature', 'gastronomy']
+            },
+            // GLOBAL SCENARIOS
+            5: {
+                startLocation: 'Paris, France',
+                startLat: 48.8566,
+                startLng: 2.3522,
+                endLocation: '',
+                endLat: null,
+                endLng: null,
+                days: 5,
+                budget: 30000,  // 5 days in Paris
+                preferences: ['culture', 'gastronomy']
+            },
+            6: {
+                startLocation: 'New York, USA',
+                startLat: 40.7128,
+                startLng: -74.0060,
+                endLocation: 'Washington DC, USA',
+                endLat: 38.9072,
+                endLng: -77.0369,
+                days: 7,
+                budget: 45000,
+                preferences: ['culture', 'gastronomy']
+            },
+            7: {
+                startLocation: 'Tokyo, Japan',
+                startLat: 35.6762,
+                startLng: 139.6503,
+                endLocation: '',
+                endLat: null,
+                endLng: null,
+                days: 6,
+                budget: 40000,
+                preferences: ['culture', 'gastronomy']
+            },
+            8: {
+                startLocation: 'Rome, Italy',
+                startLat: 41.9028,
+                startLng: 12.4964,
+                endLocation: 'Venice, Italy',
+                endLat: 45.4408,
+                endLng: 12.3155,
+                days: 5,
+                budget: 35000,
+                preferences: ['culture', 'gastronomy']
             }
         };
         
