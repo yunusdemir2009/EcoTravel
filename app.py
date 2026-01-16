@@ -12,6 +12,44 @@ CORS(app)
 DEFAULT_CITY = "Ankara"
 POI_SEARCH_RADIUS_KM = 500  # Maximum distance to search for POIs
 
+# Turkish cities database for geocoding fallback
+TURKISH_CITIES = {
+    "ankara": {"lat": 39.9334, "lng": 32.8597, "name": "Ankara"},
+    "çankaya": {"lat": 39.9181, "lng": 32.8619, "name": "Çankaya, Ankara"},
+    "kızılay": {"lat": 39.9191, "lng": 32.8543, "name": "Kızılay, Ankara"},
+    "istanbul": {"lat": 41.0082, "lng": 28.9784, "name": "İstanbul"},
+    "beyoğlu": {"lat": 41.0370, "lng": 28.9784, "name": "Beyoğlu, İstanbul"},
+    "kadıköy": {"lat": 40.9833, "lng": 29.0333, "name": "Kadıköy, İstanbul"},
+    "beşiktaş": {"lat": 41.0428, "lng": 29.0078, "name": "Beşiktaş, İstanbul"},
+    "izmir": {"lat": 38.4237, "lng": 27.1428, "name": "İzmir"},
+    "konak": {"lat": 38.4189, "lng": 27.1287, "name": "Konak, İzmir"},
+    "karşıyaka": {"lat": 38.4597, "lng": 27.1142, "name": "Karşıyaka, İzmir"},
+    "antalya": {"lat": 36.8969, "lng": 30.7133, "name": "Antalya"},
+    "muratpaşa": {"lat": 36.8889, "lng": 30.7061, "name": "Muratpaşa, Antalya"},
+    "bursa": {"lat": 40.1826, "lng": 29.0665, "name": "Bursa"},
+    "osmangazi": {"lat": 40.1873, "lng": 29.0591, "name": "Osmangazi, Bursa"},
+    "adana": {"lat": 37.0000, "lng": 35.3213, "name": "Adana"},
+    "seyhan": {"lat": 37.0011, "lng": 35.3160, "name": "Seyhan, Adana"},
+    "gaziantep": {"lat": 37.0662, "lng": 37.3833, "name": "Gaziantep"},
+    "şehitkamil": {"lat": 37.0662, "lng": 37.3833, "name": "Şehitkamil, Gaziantep"},
+    "konya": {"lat": 37.8746, "lng": 32.4932, "name": "Konya"},
+    "meram": {"lat": 37.8706, "lng": 32.4858, "name": "Meram, Konya"},
+    "kayseri": {"lat": 38.7312, "lng": 35.4787, "name": "Kayseri"},
+    "melikgazi": {"lat": 38.7205, "lng": 35.4897, "name": "Melikgazi, Kayseri"},
+    "eskişehir": {"lat": 39.7767, "lng": 30.5206, "name": "Eskişehir"},
+    "odunpazarı": {"lat": 39.7833, "lng": 30.5333, "name": "Odunpazarı, Eskişehir"},
+    "trabzon": {"lat": 41.0027, "lng": 39.7168, "name": "Trabzon"},
+    "ortahisar": {"lat": 40.9939, "lng": 39.7217, "name": "Ortahisar, Trabzon"},
+    "denizli": {"lat": 37.7765, "lng": 29.0864, "name": "Denizli"},
+    "pamukkale": {"lat": 37.9200, "lng": 29.1200, "name": "Pamukkale, Denizli"},
+    "nevşehir": {"lat": 38.6431, "lng": 34.8286, "name": "Nevşehir"},
+    "kapadokya": {"lat": 38.6431, "lng": 34.8286, "name": "Kapadokya, Nevşehir"},
+    "fethiye": {"lat": 36.6542, "lng": 29.1256, "name": "Fethiye"},
+    "ölüdeniz": {"lat": 36.5500, "lng": 29.1167, "name": "Ölüdeniz, Fethiye"},
+    "adıyaman": {"lat": 37.7648, "lng": 38.2786, "name": "Adıyaman"},
+    "nemrut": {"lat": 37.9803, "lng": 38.7414, "name": "Nemrut, Adıyaman"},
+}
+
 # Sample POI data (Points of Interest)
 POI_DATABASE = [
     {
@@ -383,6 +421,140 @@ def submit_review():
         return jsonify({
             "success": True,
             "message": "Yorum başarıyla gönderildi"
+        })
+    
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 400
+
+@app.route('/api/geocode', methods=['POST'])
+def geocode():
+    """Geocode a location name to coordinates"""
+    try:
+        data = request.json
+        location_name = data.get('location')
+        
+        if not location_name:
+            return jsonify({
+                "success": False,
+                "error": "Location name is required"
+            }), 400
+        
+        # Normalize location name for lookup
+        normalized_name = location_name.lower().strip()
+        # Remove "turkey", "türkiye" from the search
+        normalized_name = normalized_name.replace(", turkey", "").replace(", türkiye", "")
+        
+        # Try to find in our Turkish cities database first
+        for key, value in TURKISH_CITIES.items():
+            if key in normalized_name or normalized_name in key:
+                return jsonify({
+                    "success": True,
+                    "location": {
+                        "lat": value["lat"],
+                        "lng": value["lng"],
+                        "display_name": value["name"]
+                    }
+                })
+        
+        # Fallback: Try geopy if available (might not work in restricted environments)
+        try:
+            from geopy.geocoders import Nominatim
+            geolocator = Nominatim(user_agent="EcoTravel/1.0", timeout=5)
+            
+            # Add Turkey to improve results
+            query = f"{location_name}, Turkey"
+            location = geolocator.geocode(query)
+            
+            if location:
+                return jsonify({
+                    "success": True,
+                    "location": {
+                        "lat": location.latitude,
+                        "lng": location.longitude,
+                        "display_name": location.address
+                    }
+                })
+        except Exception as geo_error:
+            print(f"Geopy geocoding failed: {geo_error}")
+        
+        # If nothing found, return error
+        return jsonify({
+            "success": False,
+            "error": f"'{location_name}' için konum bulunamadı. Lütfen il veya ilçe adını deneyin (örn: İstanbul, Ankara, Antalya)"
+        }), 404
+    
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 400
+
+@app.route('/api/reverse-geocode', methods=['POST'])
+def reverse_geocode():
+    """Reverse geocode coordinates to location name"""
+    try:
+        data = request.json
+        lat = data.get('lat')
+        lng = data.get('lng')
+        
+        if lat is None or lng is None:
+            return jsonify({
+                "success": False,
+                "error": "Latitude and longitude are required"
+            }), 400
+        
+        # Try to find closest city in our database
+        min_distance = float('inf')
+        closest_city = None
+        
+        for city_data in TURKISH_CITIES.values():
+            distance = ((lat - city_data["lat"]) ** 2 + (lng - city_data["lng"]) ** 2) ** 0.5
+            if distance < min_distance:
+                min_distance = distance
+                closest_city = city_data
+        
+        # If within reasonable distance (about 50km in degrees ~0.5)
+        if closest_city and min_distance < 0.5:
+            return jsonify({
+                "success": True,
+                "location_name": closest_city["name"]
+            })
+        
+        # Fallback: Try geopy if available
+        try:
+            from geopy.geocoders import Nominatim
+            geolocator = Nominatim(user_agent="EcoTravel/1.0", timeout=5)
+            
+            location = geolocator.reverse((lat, lng))
+            
+            if location and location.raw.get('address'):
+                address = location.raw['address']
+                parts = []
+                
+                # Build location name from address parts
+                if address.get('suburb') or address.get('neighbourhood'):
+                    parts.append(address.get('suburb') or address.get('neighbourhood'))
+                if address.get('city') or address.get('town'):
+                    parts.append(address.get('city') or address.get('town'))
+                if address.get('province') or address.get('state'):
+                    parts.append(address.get('province') or address.get('state'))
+                
+                location_name = ', '.join(parts) if parts else location.address
+                
+                return jsonify({
+                    "success": True,
+                    "location_name": location_name
+                })
+        except Exception as geo_error:
+            print(f"Geopy reverse geocoding failed: {geo_error}")
+        
+        # Default: return coordinates
+        return jsonify({
+            "success": True,
+            "location_name": f"Lat: {lat:.4f}, Lng: {lng:.4f}"
         })
     
     except Exception as e:

@@ -20,25 +20,24 @@
                 <h2>Gezi Bilgileriniz</h2>
                 <form id="travelForm">
                     <div class="form-group">
-                        <label for="startLat">Başlangıç Konumu (Enlem):</label>
-                        <input type="number" id="startLat" step="0.0001" value="39.9334" required>
-                        <small>Örnek: Ankara için 39.9334</small>
+                        <label for="startLocation">Başlangıç Konumu:</label>
+                        <div class="location-input-group">
+                            <input type="text" id="startLocation" placeholder="Örnek: Ankara, Çankaya, Kızılay" required>
+                            <button type="button" id="useGPSBtn" class="gps-btn" title="Mevcut konumumu kullan">
+                                📍 GPS Kullan
+                            </button>
+                        </div>
+                        <small>İl, ilçe veya mahalle yazın. GPS ile otomatik konum alabilirsiniz.</small>
+                        <input type="hidden" id="startLat" value="39.9334">
+                        <input type="hidden" id="startLng" value="32.8597">
                     </div>
 
                     <div class="form-group">
-                        <label for="startLng">Başlangıç Konumu (Boylam):</label>
-                        <input type="number" id="startLng" step="0.0001" value="32.8597" required>
-                        <small>Örnek: Ankara için 32.8597</small>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="endLat">Hedef Konum (Enlem) - İsteğe Bağlı:</label>
-                        <input type="number" id="endLat" step="0.0001" placeholder="Gidiş-dönüş için boş bırakın">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="endLng">Hedef Konum (Boylam) - İsteğe Bağlı:</label>
-                        <input type="number" id="endLng" step="0.0001" placeholder="Gidiş-dönüş için boş bırakın">
+                        <label for="endLocation">Gideceğiniz Yer (İsteğe Bağlı):</label>
+                        <input type="text" id="endLocation" placeholder="Örnek: İstanbul, Beyoğlu - Gidiş-dönüş için boş bırakın">
+                        <small>Hedef il, ilçe veya mahalle yazın. Boş bırakırsanız gidiş-dönüş plan hazırlanır.</small>
+                        <input type="hidden" id="endLat">
+                        <input type="hidden" id="endLng">
                     </div>
 
                     <div class="form-group">

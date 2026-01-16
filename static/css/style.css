@@ -101,6 +101,38 @@ h3 {
     transition: border-color 0.3s;
 }
 
+.location-input-group {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.location-input-group input {
+    flex: 1;
+}
+
+.gps-btn {
+    padding: 12px 20px;
+    background: linear-gradient(135deg, var(--accent-color), #2980b9);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.3s;
+}
+
+.gps-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
+}
+
+.gps-btn:active {
+    transform: translateY(0);
+}
+
 .form-group input:focus,
 .form-group select:focus,
 .form-group textarea:focus {

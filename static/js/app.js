@@ -7,6 +7,8 @@ let markers = [];
 document.addEventListener('DOMContentLoaded', function() {
     loadPOIs();
     setupEventListeners();
+    // Set default location
+    document.getElementById('startLocation').value = 'Ankara';
 });
 
 // Setup event listeners
@@ -14,6 +16,24 @@ function setupEventListeners() {
     // Travel form submission
     const travelForm = document.getElementById('travelForm');
     travelForm.addEventListener('submit', handleTravelFormSubmit);
+    
+    // GPS button
+    const gpsBtn = document.getElementById('useGPSBtn');
+    gpsBtn.addEventListener('click', useGPSLocation);
+    
+    // Location input geocoding
+    const startLocationInput = document.getElementById('startLocation');
+    const endLocationInput = document.getElementById('endLocation');
+    
+    startLocationInput.addEventListener('blur', () => {
+        geocodeLocation(startLocationInput.value, 'start');
+    });
+    
+    endLocationInput.addEventListener('blur', () => {
+        if (endLocationInput.value) {
+            geocodeLocation(endLocationInput.value, 'end');
+        }
+    });
     
     // Plan tabs
     const tabButtons = document.querySelectorAll('.tab-btn');
@@ -42,9 +62,134 @@ function setupEventListeners() {
     reviewForm.addEventListener('submit', handleReviewSubmit);
 }
 
+// Use GPS to get current location
+function useGPSLocation() {
+    if (!navigator.geolocation) {
+        showNotification('GPS tarayıcınız tarafından desteklenmiyor', 'error');
+        return;
+    }
+    
+    showNotification('GPS konumu alınıyor...', 'info');
+    
+    navigator.geolocation.getCurrentPosition(
+        async (position) => {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            
+            // Update hidden fields
+            document.getElementById('startLat').value = lat;
+            document.getElementById('startLng').value = lng;
+            
+            // Reverse geocode to get location name
+            try {
+                const locationName = await reverseGeocode(lat, lng);
+                document.getElementById('startLocation').value = locationName;
+                showNotification('GPS konumu başarıyla alındı: ' + locationName, 'success');
+            } catch (error) {
+                document.getElementById('startLocation').value = `Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}`;
+                showNotification('Konum alındı ancak adres bulunamadı', 'info');
+            }
+        },
+        (error) => {
+            let message = 'GPS konumu alınamadı';
+            if (error.code === error.PERMISSION_DENIED) {
+                message = 'GPS erişim izni reddedildi';
+            } else if (error.code === error.POSITION_UNAVAILABLE) {
+                message = 'Konum bilgisi kullanılamıyor';
+            } else if (error.code === error.TIMEOUT) {
+                message = 'Konum alma zaman aşımına uğradı';
+            }
+            showNotification(message, 'error');
+        },
+        { timeout: 10000, enableHighAccuracy: true }
+    );
+}
+
+// Geocode location name to coordinates
+async function geocodeLocation(locationName, type) {
+    if (!locationName || locationName.trim() === '') {
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/geocode', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                location: locationName
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            const lat = data.location.lat;
+            const lng = data.location.lng;
+            
+            if (type === 'start') {
+                document.getElementById('startLat').value = lat;
+                document.getElementById('startLng').value = lng;
+            } else {
+                document.getElementById('endLat').value = lat;
+                document.getElementById('endLng').value = lng;
+            }
+            
+            console.log(`${type} location geocoded: ${locationName} -> ${lat}, ${lng}`);
+        } else {
+            showNotification(data.error || `"${locationName}" için konum bulunamadı`, 'error');
+        }
+    } catch (error) {
+        console.error('Geocoding error:', error);
+        showNotification('Konum arama sırasında hata oluştu', 'error');
+    }
+}
+
+// Reverse geocode coordinates to location name
+async function reverseGeocode(lat, lng) {
+    try {
+        const response = await fetch('/api/reverse-geocode', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                lat: lat,
+                lng: lng
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            return data.location_name;
+        }
+        
+        return `Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}`;
+    } catch (error) {
+        console.error('Reverse geocoding error:', error);
+        return `Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}`;
+    }
+}
+
 // Handle travel form submission
 async function handleTravelFormSubmit(e) {
     e.preventDefault();
+    
+    // First, geocode locations if they haven't been geocoded yet
+    const startLocation = document.getElementById('startLocation').value;
+    const endLocation = document.getElementById('endLocation').value;
+    
+    // Geocode start location if needed
+    if (startLocation && !document.getElementById('startLat').value) {
+        await geocodeLocation(startLocation, 'start');
+    }
+    
+    // Geocode end location if provided and not already geocoded
+    if (endLocation && !document.getElementById('endLat').value) {
+        await geocodeLocation(endLocation, 'end');
+    }
     
     const startLat = parseFloat(document.getElementById('startLat').value);
     const startLng = parseFloat(document.getElementById('startLng').value);
