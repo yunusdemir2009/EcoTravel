@@ -155,6 +155,71 @@ HTML sayfası
 
 ---
 
+### 5. Konum Geocoding
+**Endpoint:** `/api/geocode`  
+**Method:** POST  
+**Açıklama:** Şehir/ilçe/mahalle adını koordinatlara dönüştürür
+
+**Request Body:**
+```json
+{
+  "location": "İstanbul, Beyoğlu"
+}
+```
+
+**Request Parameters:**
+| Parametre | Tip | Zorunlu | Açıklama |
+|-----------|-----|---------|----------|
+| location | String | Evet | Şehir, ilçe veya mahalle adı |
+
+**Response:**
+```json
+{
+  "success": true,
+  "location": {
+    "lat": 41.0370,
+    "lng": 28.9784,
+    "display_name": "Beyoğlu, İstanbul"
+  }
+}
+```
+
+**Desteklenen Konumlar:**
+- 30+ Türk şehri ve ilçesi (Ankara, İstanbul, İzmir, Antalya, Bursa, vb.)
+- Mahalle ve semt isimleri (Beyoğlu, Kadıköy, Çankaya, Kızılay, vb.)
+- Fallback: OpenStreetMap Nominatim geocoding servisi
+
+---
+
+### 6. Reverse Geocoding
+**Endpoint:** `/api/reverse-geocode`  
+**Method:** POST  
+**Açıklama:** Koordinatları şehir/ilçe adına dönüştürür
+
+**Request Body:**
+```json
+{
+  "lat": 39.9334,
+  "lng": 32.8597
+}
+```
+
+**Request Parameters:**
+| Parametre | Tip | Zorunlu | Açıklama |
+|-----------|-----|---------|----------|
+| lat | Float | Evet | Enlem |
+| lng | Float | Evet | Boylam |
+
+**Response:**
+```json
+{
+  "success": true,
+  "location_name": "Ankara"
+}
+```
+
+---
+
 ## Hata Yanıtları
 
 Tüm endpoint'ler hata durumunda şu formatta yanıt döner:
@@ -275,6 +340,25 @@ curl -X POST http://localhost:5000/api/review \
     "poi_id": 1,
     "rating": 5,
     "comment": "Muhteşem bir yer!"
+  }'
+```
+
+### Örnek 5: Şehir Adını Geocode Et
+```bash
+curl -X POST http://localhost:5000/api/geocode \
+  -H "Content-Type: application/json" \
+  -d '{
+    "location": "İstanbul, Kadıköy"
+  }'
+```
+
+### Örnek 6: Koordinatları Şehir Adına Çevir
+```bash
+curl -X POST http://localhost:5000/api/reverse-geocode \
+  -H "Content-Type: application/json" \
+  -d '{
+    "lat": 41.0082,
+    "lng": 28.9784
   }'
 ```
 

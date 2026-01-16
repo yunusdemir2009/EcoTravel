@@ -93,11 +93,14 @@ Tarayıcınızda şu adresi açın: `http://localhost:5000`
 ## 📖 Kullanım
 
 ### 1. Başlangıç Konumu Belirleme
-- Enlem ve boylam koordinatlarını girin (örn. Ankara: 39.9334, 32.8597)
-- Veya GPS kullanarak otomatik konum alın
+- **Şehir Adı Yazın**: "Ankara", "İstanbul, Beyoğlu", "Antalya, Muratpaşa" gibi il, ilçe veya mahalle adı yazın
+- **GPS Kullanın**: "📍 GPS Kullan" butonuna tıklayarak mevcut konumunuzu otomatik olarak alın
+- Sistem, yazdığınız şehir adını otomatik olarak koordinatlara dönüştürür
+
+**Desteklenen Şehirler**: Ankara, İstanbul, İzmir, Antalya, Bursa, Adana, Gaziantep, Konya, Kayseri, Eskişehir, Trabzon, Denizli, Nevşehir, Fethiye, Adıyaman ve daha fazlası...
 
 ### 2. Hedef ve Parametreleri Ayarlama
-- Hedef konumu girin (isteğe bağlı)
+- Gideceğiniz yeri yazın (örn. "İstanbul", "Antalya") veya gidiş-dönüş için boş bırakın
 - Gün sayısını belirleyin (1-30 gün arası)
 - Bütçenizi TL olarak girin
 - Gezi türü tercihlerinizi seçin (doğa, kültür, gastronomi)
