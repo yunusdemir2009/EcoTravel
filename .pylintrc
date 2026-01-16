@@ -1,0 +1,34 @@
+[MASTER]
+ignore=CVS,.git,__pycache__,venv,env,.venv
+jobs=1
+persistent=yes
+suggestion-mode=yes
+unsafe-load-any-extension=no
+
+[MESSAGES CONTROL]
+disable=
+    C0111,  # missing-docstring
+    C0103,  # invalid-name
+    R0903,  # too-few-public-methods
+    W0703,  # broad-except
+    
+[REPORTS]
+output-format=text
+reports=no
+score=yes
+
+[FORMAT]
+indent-string='    '
+max-line-length=120
+max-module-lines=1000
+
+[BASIC]
+good-names=i,j,k,ex,Run,_,id,db,app
+
+[DESIGN]
+max-args=7
+max-attributes=10
+max-branches=15
+max-locals=20
+max-returns=6
+max-statements=50

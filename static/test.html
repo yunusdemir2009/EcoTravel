@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>EcoTravel Test</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/style_enhanced.css">
+</head>
+<body>
+    <h1>Test Sayfası</h1>
+    <button id="testBtn">Test API</button>
+    <div id="result"></div>
+    
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        document.getElementById('testBtn').addEventListener('click', async () => {
+            console.log('Test başlatılıyor...');
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Yükleniyor...';
+            
+            try {
+                const response = await fetch('/api/plan', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        start_location: 'Ankara',
+                        start_lat: 39.9334,
+                        start_lng: 32.8597,
+                        days: 3,
+                        budget: 10000,
+                        preferences: ['nature']
+                    })
+                });
+                
+                const data = await response.json();
+                console.log('API Yanıtı:', data);
+                
+                if (data.plans) {
+                    resultDiv.innerHTML = `
+                        <h2>✅ Başarılı!</h2>
+                        <p>Ekonomik Plan Maliyeti: ${data.plans.basic.estimated_cost} ₺</p>
+                        <p>Gün Sayısı: ${data.plans.basic.itinerary.length}</p>
+                        <pre>${JSON.stringify(data.plans.basic, null, 2).substring(0, 500)}...</pre>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<p style="color: red;">❌ Hata: ${data.error || 'Bilinmeyen hata'}</p>`;
+                }
+            } catch (error) {
+                console.error('Hata:', error);
+                resultDiv.innerHTML = `<p style="color: red;">❌ İstek hatası: ${error.message}</p>`;
+            }
+        });
+        
+        console.log('Test sayfası yüklendi - Console\'u kontrol edin');
+    </script>
+</body>
+</html>

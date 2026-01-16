@@ -3,14 +3,27 @@ from flask_cors import CORS
 import json
 from datetime import datetime, timedelta
 from geopy.distance import geodesic
+from geopy.geocoders import Nominatim
 import os
+
+# Import external API functionality
+try:
+    from external_api import PlacesAPI
+    USE_EXTERNAL_API = True
+except ImportError:
+    USE_EXTERNAL_API = False
+    print("Warning: external_api module not available, using local database only")
 
 app = Flask(__name__)
 CORS(app)
 
+# Initialize geocoder and places API
+geolocator = Nominatim(user_agent="ecotravel-dynamic-v1.0")
+places_api = PlacesAPI() if USE_EXTERNAL_API else None
+
 # Configuration constants
 DEFAULT_CITY = "Ankara"
-POI_SEARCH_RADIUS_KM = 500  # Maximum distance to search for POIs
+POI_SEARCH_RADIUS_KM = 100  # Maximum distance to search for POIs
 
 # Turkish cities database for geocoding fallback
 TURKISH_CITIES = {
@@ -52,158 +65,93 @@ TURKISH_CITIES = {
     "nemrut": {"lat": 37.9803, "lng": 38.7414, "name": "Nemrut, Adıyaman"},
 }
 
-# Sample POI data (Points of Interest)
+# Sample POI data (Points of Interest) - 2026 fiyatlarıyla
 POI_DATABASE = [
-    {
-        "id": 1,
-        "name": "Anıtkabir",
-        "location": {"lat": 39.9250, "lng": 32.8369},
-        "city": "Ankara",
-        "category": "culture",
-        "description": "Atatürk'ün anıt mezarı",
-        "visit_duration": 2,  # hours
-        "cost_basic": 0,
-        "cost_mid": 50,
-        "cost_luxury": 150,
-        "rating": 4.8
-    },
-    {
-        "id": 2,
-        "name": "Kapadokya",
-        "location": {"lat": 38.6431, "lng": 34.8286},
-        "city": "Nevşehir",
-        "category": "nature",
-        "description": "Eşsiz doğal oluşumlar ve sıcak hava balonu",
-        "visit_duration": 8,
-        "cost_basic": 200,
-        "cost_mid": 500,
-        "cost_luxury": 1500,
-        "rating": 4.9
-    },
-    {
-        "id": 3,
-        "name": "Efes Antik Kenti",
-        "location": {"lat": 37.9392, "lng": 27.3409},
-        "city": "İzmir",
-        "category": "culture",
-        "description": "Antik Roma şehri kalıntıları",
-        "visit_duration": 3,
-        "cost_basic": 100,
-        "cost_mid": 250,
-        "cost_luxury": 500,
-        "rating": 4.7
-    },
-    {
-        "id": 4,
-        "name": "Pamukkale",
-        "location": {"lat": 37.9200, "lng": 29.1200},
-        "city": "Denizli",
-        "category": "nature",
-        "description": "Beyaz travertenler ve termal sular",
-        "visit_duration": 4,
-        "cost_basic": 150,
-        "cost_mid": 300,
-        "cost_luxury": 700,
-        "rating": 4.6
-    },
-    {
-        "id": 5,
-        "name": "Topkapı Sarayı",
-        "location": {"lat": 41.0115, "lng": 28.9833},
-        "city": "İstanbul",
-        "category": "culture",
-        "description": "Osmanlı İmparatorluğu'nun sarayı",
-        "visit_duration": 3,
-        "cost_basic": 200,
-        "cost_mid": 400,
-        "cost_luxury": 800,
-        "rating": 4.7
-    },
-    {
-        "id": 6,
-        "name": "Ayasofya",
-        "location": {"lat": 41.0086, "lng": 28.9802},
-        "city": "İstanbul",
-        "category": "culture",
-        "description": "Tarihi cami ve müze",
-        "visit_duration": 2,
-        "cost_basic": 0,
-        "cost_mid": 100,
-        "cost_luxury": 300,
-        "rating": 4.8
-    },
-    {
-        "id": 7,
-        "name": "Ölüdeniz",
-        "location": {"lat": 36.5500, "lng": 29.1167},
-        "city": "Fethiye",
-        "category": "nature",
-        "description": "Turkuaz rengi plaj ve yamaç paraşütü",
-        "visit_duration": 6,
-        "cost_basic": 100,
-        "cost_mid": 350,
-        "cost_luxury": 900,
-        "rating": 4.8
-    },
-    {
-        "id": 8,
-        "name": "Nemrut Dağı",
-        "location": {"lat": 37.9803, "lng": 38.7414},
-        "city": "Adıyaman",
-        "category": "nature",
-        "description": "Dev heykeller ve gün doğumu",
-        "visit_duration": 5,
-        "cost_basic": 150,
-        "cost_mid": 350,
-        "cost_luxury": 750,
-        "rating": 4.5
-    }
+    # Ankara
+    {"id": 1, "name": "Anıtkabir", "location": {"lat": 39.9250, "lng": 32.8369}, "city": "Ankara", "category": "culture",
+     "description": "Atatürk'ün anıt mezarı ve müzesi", "visit_duration": 2, "cost_basic": 0, "cost_mid": 100, "cost_luxury": 250, "rating": 4.9},
+    {"id": 2, "name": "Ankara Kalesi", "location": {"lat": 39.9392, "lng": 32.8647}, "city": "Ankara", "category": "culture",
+     "description": "Tarihi kale ve panoramik şehir manzarası", "visit_duration": 2, "cost_basic": 0, "cost_mid": 50, "cost_luxury": 150, "rating": 4.5},
+    {"id": 3, "name": "Anadolu Medeniyetleri Müzesi", "location": {"lat": 39.9402, "lng": 32.8625}, "city": "Ankara", "category": "culture",
+     "description": "Anadolu'nun tarihi ve arkeolojik eserleri", "visit_duration": 3, "cost_basic": 150, "cost_mid": 200, "cost_luxury": 350, "rating": 4.7},
+    
+    # Kapadokya Bölgesi
+    {"id": 4, "name": "Kapadokya Sıcak Hava Balonu", "location": {"lat": 38.6431, "lng": 34.8286}, "city": "Nevşehir", "category": "nature",
+     "description": "Eşsiz manzarada sıcak hava balonu turu", "visit_duration": 3, "cost_basic": 3500, "cost_mid": 5000, "cost_luxury": 8000, "rating": 4.9},
+    {"id": 5, "name": "Göreme Açık Hava Müzesi", "location": {"lat": 38.6425, "lng": 34.8284}, "city": "Nevşehir", "category": "culture",
+     "description": "Kayaya oyulmuş kiliseler ve freskleri", "visit_duration": 3, "cost_basic": 450, "cost_mid": 600, "cost_luxury": 900, "rating": 4.8},
+    {"id": 6, "name": "Derinkuyu Yeraltı Şehri", "location": {"lat": 38.3738, "lng": 34.7342}, "city": "Nevşehir", "category": "culture",
+     "description": "8 katlı antik yeraltı şehri", "visit_duration": 2, "cost_basic": 350, "cost_mid": 450, "cost_luxury": 700, "rating": 4.6},
+    
+    # İstanbul
+    {"id": 7, "name": "Topkapı Sarayı", "location": {"lat": 41.0115, "lng": 28.9833}, "city": "İstanbul", "category": "culture",
+     "description": "Osmanlı İmparatorluğu'nun muhteşem sarayı", "visit_duration": 3, "cost_basic": 500, "cost_mid": 800, "cost_luxury": 1500, "rating": 4.8},
+    {"id": 8, "name": "Ayasofya Camii", "location": {"lat": 41.0086, "lng": 28.9802}, "city": "İstanbul", "category": "culture",
+     "description": "1500 yıllık tarihi yapı", "visit_duration": 2, "cost_basic": 0, "cost_mid": 150, "cost_luxury": 400, "rating": 4.9},
+    {"id": 9, "name": "Boğaz Turu", "location": {"lat": 41.0400, "lng": 29.0050}, "city": "İstanbul", "category": "nature",
+     "description": "İstanbul Boğazı'nda tekne turu", "visit_duration": 3, "cost_basic": 400, "cost_mid": 800, "cost_luxury": 2000, "rating": 4.7},
+    {"id": 10, "name": "Kapalıçarşı", "location": {"lat": 41.0106, "lng": 28.9680}, "city": "İstanbul", "category": "gastronomy",
+     "description": "Tarihi kapalı çarşı ve alışveriş", "visit_duration": 3, "cost_basic": 200, "cost_mid": 500, "cost_luxury": 1500, "rating": 4.5},
+    {"id": 11, "name": "Dolmabahçe Sarayı", "location": {"lat": 41.0391, "lng": 29.0003}, "city": "İstanbul", "category": "culture",
+     "description": "Boğaz kıyısındaki görkemli saray", "visit_duration": 2, "cost_basic": 400, "cost_mid": 600, "cost_luxury": 1000, "rating": 4.7},
+    
+    # İzmir ve Çevresi
+    {"id": 12, "name": "Efes Antik Kenti", "location": {"lat": 37.9392, "lng": 27.3409}, "city": "İzmir", "category": "culture",
+     "description": "Dünyanın en iyi korunmuş antik Roma şehri", "visit_duration": 4, "cost_basic": 450, "cost_mid": 700, "cost_luxury": 1200, "rating": 4.9},
+    {"id": 13, "name": "Şirince Köyü", "location": {"lat": 37.9478, "lng": 27.4497}, "city": "İzmir", "category": "gastronomy",
+     "description": "Şarap ve geleneksel lezzetler", "visit_duration": 3, "cost_basic": 300, "cost_mid": 600, "cost_luxury": 1200, "rating": 4.6},
+    {"id": 14, "name": "Alaçatı", "location": {"lat": 38.2667, "lng": 26.3667}, "city": "İzmir", "category": "nature",
+     "description": "Rüzgar sörfü ve taş evler", "visit_duration": 5, "cost_basic": 500, "cost_mid": 1000, "cost_luxury": 2500, "rating": 4.7},
+    
+    # Antalya
+    {"id": 15, "name": "Kaleiçi", "location": {"lat": 36.8854, "lng": 30.7056}, "city": "Antalya", "category": "culture",
+     "description": "Tarihi liman ve dar sokaklar", "visit_duration": 3, "cost_basic": 0, "cost_mid": 200, "cost_luxury": 600, "rating": 4.6},
+    {"id": 16, "name": "Düden Şelalesi", "location": {"lat": 36.9108, "lng": 30.7614}, "city": "Antalya", "category": "nature",
+     "description": "Muhteşem doğal şelale", "visit_duration": 2, "cost_basic": 150, "cost_mid": 250, "cost_luxury": 500, "rating": 4.5},
+    {"id": 17, "name": "Perge Antik Kenti", "location": {"lat": 36.9614, "lng": 30.8522}, "city": "Antalya", "category": "culture",
+     "description": "Roma dönemi antik kent", "visit_duration": 3, "cost_basic": 300, "cost_mid": 450, "cost_luxury": 800, "rating": 4.4},
+    
+    # Pamukkale
+    {"id": 18, "name": "Pamukkale Travertenleri", "location": {"lat": 37.9200, "lng": 29.1200}, "city": "Denizli", "category": "nature",
+     "description": "Beyaz travertenler ve termal havuzlar", "visit_duration": 4, "cost_basic": 400, "cost_mid": 700, "cost_luxury": 1400, "rating": 4.8},
+    {"id": 19, "name": "Hierapolis Antik Kenti", "location": {"lat": 37.9244, "lng": 29.1258}, "city": "Denizli", "category": "culture",
+     "description": "Pamukkale üzerindeki antik şehir", "visit_duration": 2, "cost_basic": 200, "cost_mid": 350, "cost_luxury": 650, "rating": 4.6},
+    
+    # Fethiye
+    {"id": 20, "name": "Ölüdeniz Plajı", "location": {"lat": 36.5500, "lng": 29.1167}, "city": "Fethiye", "category": "nature",
+     "description": "Turkuaz lagün ve muhteşem plaj", "visit_duration": 6, "cost_basic": 300, "cost_mid": 700, "cost_luxury": 1800, "rating": 4.9},
+    {"id": 21, "name": "Yamaç Paraşütü (Ölüdeniz)", "location": {"lat": 36.5485, "lng": 29.1103}, "city": "Fethiye", "category": "nature",
+     "description": "Babadağ'dan yamaç paraşütü deneyimi", "visit_duration": 3, "cost_basic": 1500, "cost_mid": 2000, "cost_luxury": 3500, "rating": 4.9},
+    {"id": 22, "name": "Saklıkent Kanyonu", "location": {"lat": 36.4833, "lng": 29.3167}, "city": "Fethiye", "category": "nature",
+     "description": "18 km uzunluğunda dev kanyon", "visit_duration": 4, "cost_basic": 250, "cost_mid": 450, "cost_luxury": 900, "rating": 4.7},
+    
+    # Konya
+    {"id": 23, "name": "Mevlana Müzesi", "location": {"lat": 37.8712, "lng": 32.5044}, "city": "Konya", "category": "culture",
+     "description": "Mevlana'nın türbesi ve müzesi", "visit_duration": 2, "cost_basic": 0, "cost_mid": 100, "cost_luxury": 300, "rating": 4.7},
+    
+    # Adıyaman
+    {"id": 24, "name": "Nemrut Dağı", "location": {"lat": 37.9803, "lng": 38.7414}, "city": "Adıyaman", "category": "nature",
+     "description": "Dev heykeller ve büyüleyici gün doğumu", "visit_duration": 6, "cost_basic": 600, "cost_mid": 1000, "cost_luxury": 2000, "rating": 4.8},
+    
+    # Bursa
+    {"id": 25, "name": "Uludağ", "location": {"lat": 40.0969, "lng": 29.2706}, "city": "Bursa", "category": "nature",
+     "description": "Kayak merkezi ve teleferik", "visit_duration": 6, "cost_basic": 800, "cost_mid": 1500, "cost_luxury": 3500, "rating": 4.6},
+    {"id": 26, "name": "Bursa Ulu Cami", "location": {"lat": 40.1833, "lng": 29.0625}, "city": "Bursa", "category": "culture",
+     "description": "Osmanlı mimarisinin şaheseri", "visit_duration": 1, "cost_basic": 0, "cost_mid": 50, "cost_luxury": 150, "rating": 4.5}
 ]
 
-# Sample accommodation data
+# Konaklama veritabanı - 2026 gerçekçi fiyatlar
 ACCOMMODATION_DATABASE = [
-    {
-        "city": "Ankara",
-        "basic": {"name": "Hostel", "cost_per_night": 150},
-        "mid": {"name": "3 Yıldız Otel", "cost_per_night": 400},
-        "luxury": {"name": "5 Yıldız Otel", "cost_per_night": 1200}
-    },
-    {
-        "city": "Nevşehir",
-        "basic": {"name": "Pansiyon", "cost_per_night": 200},
-        "mid": {"name": "Mağara Otel", "cost_per_night": 600},
-        "luxury": {"name": "Butik Mağara Otel", "cost_per_night": 1500}
-    },
-    {
-        "city": "İzmir",
-        "basic": {"name": "Hostel", "cost_per_night": 150},
-        "mid": {"name": "3 Yıldız Otel", "cost_per_night": 450},
-        "luxury": {"name": "5 Yıldız Sahil Oteli", "cost_per_night": 1400}
-    },
-    {
-        "city": "Denizli",
-        "basic": {"name": "Pansiyon", "cost_per_night": 150},
-        "mid": {"name": "Termal Otel", "cost_per_night": 500},
-        "luxury": {"name": "Termal Spa Resort", "cost_per_night": 1300}
-    },
-    {
-        "city": "İstanbul",
-        "basic": {"name": "Hostel", "cost_per_night": 200},
-        "mid": {"name": "Butik Otel", "cost_per_night": 700},
-        "luxury": {"name": "5 Yıldız Boğaz Oteli", "cost_per_night": 2000}
-    },
-    {
-        "city": "Fethiye",
-        "basic": {"name": "Pansiyon", "cost_per_night": 180},
-        "mid": {"name": "Resort Otel", "cost_per_night": 550},
-        "luxury": {"name": "Luxury Beach Resort", "cost_per_night": 1600}
-    },
-    {
-        "city": "Adıyaman",
-        "basic": {"name": "Otel", "cost_per_night": 120},
-        "mid": {"name": "3 Yıldız Otel", "cost_per_night": 350},
-        "luxury": {"name": "Dağ Evi Resort", "cost_per_night": 900}
-    }
+    {"city": "Ankara", "basic": {"name": "Hostel/Pansiyon", "cost_per_night": 400}, "mid": {"name": "3 Yıldız Otel", "cost_per_night": 1200}, "luxury": {"name": "5 Yıldız Otel", "cost_per_night": 3500}},
+    {"city": "Nevşehir", "basic": {"name": "Pansiyon", "cost_per_night": 600}, "mid": {"name": "Mağara Otel", "cost_per_night": 1800}, "luxury": {"name": "Butik Mağara Otel", "cost_per_night": 5000}},
+    {"city": "İzmir", "basic": {"name": "Hostel", "cost_per_night": 450}, "mid": {"name": "3 Yıldız Otel", "cost_per_night": 1400}, "luxury": {"name": "5 Yıldız Sahil Oteli", "cost_per_night": 4500}},
+    {"city": "Denizli", "basic": {"name": "Pansiyon", "cost_per_night": 500}, "mid": {"name": "Termal Otel", "cost_per_night": 1500}, "luxury": {"name": "Termal Spa Resort", "cost_per_night": 4000}},
+    {"city": "İstanbul", "basic": {"name": "Hostel", "cost_per_night": 600}, "mid": {"name": "Butik Otel", "cost_per_night": 2200}, "luxury": {"name": "5 Yıldız Boğaz Oteli", "cost_per_night": 7000}},
+    {"city": "Fethiye", "basic": {"name": "Pansiyon", "cost_per_night": 550}, "mid": {"name": "Resort Otel", "cost_per_night": 1800}, "luxury": {"name": "Luxury Beach Resort", "cost_per_night": 5500}},
+    {"city": "Antalya", "basic": {"name": "Pansiyon", "cost_per_night": 550}, "mid": {"name": "4 Yıldız Otel", "cost_per_night": 1900}, "luxury": {"name": "5 Yıldız Ultra Her Şey Dahil", "cost_per_night": 6000}},
+    {"city": "Adıyaman", "basic": {"name": "Otel", "cost_per_night": 400}, "mid": {"name": "3 Yıldız Otel", "cost_per_night": 1000}, "luxury": {"name": "Dağ Evi Resort", "cost_per_night": 2800}},
+    {"city": "Konya", "basic": {"name": "Otel", "cost_per_night": 400}, "mid": {"name": "3 Yıldız Otel", "cost_per_night": 1100}, "luxury": {"name": "Lüks Otel", "cost_per_night": 3000}},
+    {"city": "Bursa", "basic": {"name": "Pansiyon", "cost_per_night": 450}, "mid": {"name": "3 Yıldız Otel", "cost_per_night": 1300}, "luxury": {"name": "Termal Resort", "cost_per_night": 4000}}
 ]
 
 def calculate_distance(loc1, loc2):
@@ -218,27 +166,41 @@ def calculate_distance(loc1, loc2):
 
 def calculate_transport_cost(distance_km, tier):
     """Calculate transportation cost based on distance and tier"""
-    # Cost per km by tier (car rental + fuel)
-    cost_per_km = {
-        "basic": 2.5,  # Bus/shared transport
-        "mid": 4.0,    # Rental car economy
-        "luxury": 8.0  # Premium car + driver
-    }
-    return distance_km * cost_per_km.get(tier, 3.0)
+    # 2026 Türkiye gerçek ulaşım maliyetleri
+    if distance_km < 5:  # Şehir içi (taksi/toplu taşıma)
+        base_cost = {"basic": 50, "mid": 150, "luxury": 400}
+        return base_cost.get(tier, 100)
+    elif distance_km < 50:  # Şehir çevresi
+        cost_per_km = {"basic": 5.0, "mid": 10.0, "luxury": 25.0}
+        return distance_km * cost_per_km.get(tier, 8.0)
+    else:  # Şehirlerarası
+        cost_per_km = {"basic": 8.0, "mid": 15.0, "luxury": 35.0}
+        return distance_km * cost_per_km.get(tier, 12.0)
 
 def calculate_food_cost(days, tier):
     """Calculate food cost per day based on tier"""
+    # 2026 günlük yemek maliyetleri (kahvaltı, öğle, akşam)
     cost_per_day = {
-        "basic": 200,   # Simple meals
-        "mid": 400,     # Restaurant meals
-        "luxury": 800   # Fine dining
+        "basic": 800,    # Esnaf lokantası, sokak lezzetleri
+        "mid": 1500,     # Orta segment restoranlar
+        "luxury": 3500   # Fine dining, özel menüler
     }
-    return days * cost_per_day.get(tier, 300)
+    return days * cost_per_day.get(tier, 1200)
 
 def find_pois_near_route(start_loc, end_loc, preferences, max_pois=5):
-    """Find POIs near the route"""
+    """Find POIs near the route - now supports external API for any location"""
     pois = []
     
+    # Determine if it's a round trip (same start and end)
+    is_round_trip = (
+        abs(start_loc["lat"] - end_loc["lat"]) < 0.01 and 
+        abs(start_loc["lng"] - end_loc["lng"]) < 0.01
+    )
+    
+    # Use larger radius for round trips to get more variety
+    search_radius = POI_SEARCH_RADIUS_KM * 3 if is_round_trip else POI_SEARCH_RADIUS_KM
+    
+    # First, check local database
     for poi in POI_DATABASE:
         # Filter by category if specified
         if preferences is not None and len(preferences) > 0:
@@ -249,10 +211,47 @@ def find_pois_near_route(start_loc, end_loc, preferences, max_pois=5):
         dist_to_start = calculate_distance(start_loc, poi["location"])
         dist_to_end = calculate_distance(end_loc, poi["location"])
         
-        if dist_to_start < POI_SEARCH_RADIUS_KM or dist_to_end < POI_SEARCH_RADIUS_KM:
+        if dist_to_start < search_radius or dist_to_end < search_radius:
             poi_copy = poi.copy()
             poi_copy["distance_from_start"] = round(dist_to_start, 2)
             pois.append(poi_copy)
+    
+    # If we don't have enough POIs from local database and external API is available,
+    # fetch from OpenStreetMap
+    if len(pois) < max_pois and USE_EXTERNAL_API and places_api:
+        try:
+            print(f"Fetching external places for route ({start_loc['lat']},{start_loc['lng']}) to ({end_loc['lat']},{end_loc['lng']})")
+            external_places = places_api.find_places_along_route(
+                start_loc["lat"],
+                start_loc["lng"],
+                end_loc["lat"],
+                end_loc["lng"],
+                categories=preferences,
+                max_distance_km=search_radius
+            )
+            
+            print(f"Found {len(external_places)} external places")
+            
+            # Convert external places to our POI format
+            for place in external_places:
+                poi_data = {
+                    "id": f"osm_{place.get('osm_id', hash(place['name']))}",
+                    "name": place["name"],
+                    "location": place["location"],
+                    "city": place["city"],
+                    "category": place["category"],
+                    "description": place["description"],
+                    "visit_duration": place["visit_duration"],
+                    "cost_basic": place["cost_basic"],
+                    "cost_mid": place["cost_mid"],
+                    "cost_luxury": place["cost_luxury"],
+                    "rating": place["rating"],
+                    "distance_from_start": round(place["distance_from_route"], 2),
+                    "source": "osm"
+                }
+                pois.append(poi_data)
+        except Exception as e:
+            print(f"Error fetching external places: {e}")
     
     # Sort by rating and distance
     pois.sort(key=lambda x: (-x["rating"], x["distance_from_start"]))
@@ -264,8 +263,8 @@ def get_accommodation_for_city(city, tier):
         if acc["city"] == city:
             return acc.get(tier, acc.get("mid"))
     # Default accommodation
-    default_costs = {"basic": 150, "mid": 400, "luxury": 1000}
-    return {"name": "Otel", "cost_per_night": default_costs.get(tier, 300)}
+    default_costs = {"basic": 500, "mid": 1500, "luxury": 4000}
+    return {"name": "Otel", "cost_per_night": default_costs.get(tier, 1200)}
 
 def create_itinerary(start_loc, end_loc, days, budget, tier, preferences):
     """Create a day-by-day itinerary"""
@@ -299,8 +298,13 @@ def create_itinerary(start_loc, end_loc, days, budget, tier, preferences):
             distance = calculate_distance(current_location, poi["location"])
             transport_cost = calculate_transport_cost(distance, tier)
             
-            # Get POI cost based on tier
-            poi_cost = poi.get(f"cost_{tier}", poi.get("cost_mid", 0))
+            # Get POI cost based on tier - handle both formats
+            if f"cost_{tier}" in poi:
+                poi_cost = poi[f"cost_{tier}"]
+            elif "cost" in poi and isinstance(poi["cost"], dict):
+                poi_cost = poi["cost"].get(tier, poi["cost"].get("mid", 0))
+            else:
+                poi_cost = 0
             
             activity = {
                 "name": poi["name"],
@@ -378,15 +382,38 @@ def create_plan():
         data = request.json
         
         # Extract user inputs
-        start_location = data.get('start_location', {"lat": 39.9334, "lng": 32.8597})  # Default: Ankara
-        end_location = data.get('end_location')
+        start_location_name = data.get('start_location', 'Ankara')
+        start_lat = data.get('start_lat')
+        start_lng = data.get('start_lng')
+        
+        end_location_name = data.get('end_location')
+        end_lat = data.get('end_lat')
+        end_lng = data.get('end_lng')
+        
         days = int(data.get('days', 5))
         budget = float(data.get('budget', 5000))
         preferences = data.get('preferences', [])  # ['nature', 'culture', 'gastronomy']
         
+        # Build location objects
+        if start_lat is None or start_lng is None:
+            # Default to Ankara
+            start_lat, start_lng = 39.9334, 32.8597
+        
+        start_location = {
+            "lat": float(start_lat),
+            "lng": float(start_lng),
+            "name": start_location_name
+        }
+        
         # If no end location, use start location (round trip)
-        if not end_location:
+        if end_lat is None or end_lng is None or not end_location_name:
             end_location = start_location
+        else:
+            end_location = {
+                "lat": float(end_lat),
+                "lng": float(end_lng),
+                "name": end_location_name
+            }
         
         # Generate plans for all tiers
         plans = generate_travel_plan(start_location, end_location, days, budget, preferences)

@@ -1,31 +1,40 @@
 # 🌍 EcoTravel - Akıllı Gezi Planlayıcı
 
-EcoTravel, kullanıcıların bütçelerine ve zamanlarına göre kişiselleştirilmiş seyahat planları oluşturmalarını sağlayan akıllı bir gezi planlama uygulamasıdır.
+EcoTravel, kullanıcıların bütçelerine ve zamanlarına göre kişiselleştirilmiş seyahat planları oluşturmalarını sağlayan akıllı bir gezi planlama uygulamasıdır. **Artık herhangi bir adres için dinamik rotalar oluşturabilir!**
 
 ## ✨ Temel Özellikler
 
-### 1. Konum Bazlı Planlama
+### 🆕 1. Dinamik Rota Oluşturma (YENİ!)
+- 🗺️ **Herhangi bir adres** için otomatik rota oluşturma
+- 🌐 **OpenStreetMap API** ile gerçek zamanlı yer keşfi
+- 📍 Önceden tanımlı veritabanı **dışında sınırsız yerler**
+- 🎯 Akıllı rota optimizasyonu ve yer önerileri
+- 🔄 Sürekli güncel veriler (kullanıcı katkılı OSM)
+
+### 2. Konum Bazlı Planlama
 - GPS veya manuel konum girişi ile başlangıç noktası belirleme
 - İsteğe bağlı hedef konum seçimi
 - Gidiş-dönüş veya tek yön rotalar
+- **Türkiye'nin her yerini** destekler (40+ şehir + tüm ilçe/mahalleler)
 
-### 2. Bütçe ve Gün Bazlı Planlama
+### 3. Bütçe ve Gün Bazlı Planlama
 - Kullanıcının belirlediği bütçe ve seyahat süresine göre otomatik rota önerisi
 - Minimum ve maksimum harcama tahminleri
 - Gerçek zamanlı bütçe kontrolü
 
-### 3. Üç Farklı Seviye Plan
+### 4. Üç Farklı Seviye Plan
 - **Ekonomik Plan (Basic)**: En uygun fiyatlı seçenekler, hostel/pansiyon konaklaması, toplu taşıma
 - **Orta Seviye Plan**: Konforlu ama ekonomik seçenekler, 3 yıldızlı oteller, araç kiralama
 - **Lüks Plan**: Maksimum konfor ve deneyim, 5 yıldızlı oteller, özel araç ve şoför
 
-### 4. Akıllı Rota Önerisi
+### 5. Akıllı Rota Önerisi
 - Rota üzerindeki gezilecek yerler (POI - Points of Interest)
+- **Gerçek zamanlı OSM verisi** + yerel veritabanı hibrit yaklaşımı
 - Etkinlik önerileri
 - Konaklama önerileri
 - Yemek ve ulaşım planlaması
 
-### 5. Detaylı Maliyet Hesaplaması
+### 6. Detaylı Maliyet Hesaplaması
 - Ulaşım maliyetleri
 - Konaklama maliyetleri
 - Yemek maliyetleri

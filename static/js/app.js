@@ -11,6 +11,97 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('startLocation').value = 'Ankara';
 });
 
+// Load demo scenario
+window.loadDemo = function(scenarioId) {
+    try {
+        const scenarios = {
+            1: {
+                startLocation: 'Ankara',
+                startLat: 39.9334,
+                startLng: 32.8597,
+                endLocation: 'Antalya',
+                endLat: 36.8969,
+                endLng: 30.7133,
+                days: 7,
+                budget: 25000,  // 2026 gerçekçi bütçe
+                preferences: ['nature', 'culture']
+            },
+            2: {
+                startLocation: 'İstanbul, Kadıköy',
+                startLat: 40.9833,
+                startLng: 29.0333,
+                endLocation: '',
+                endLat: null,
+                endLng: null,
+                days: 3,
+                budget: 12000,  // 2026 gerçekçi bütçe
+                preferences: ['culture', 'gastronomy']
+            },
+            3: {
+                startLocation: 'Ankara',
+                startLat: 39.9334,
+                startLng: 32.8597,
+                endLocation: 'Nevşehir, Kapadokya',
+                endLat: 38.6431,
+                endLng: 34.8286,
+                days: 4,
+                budget: 18000,  // 2026 gerçekçi bütçe
+                preferences: ['nature', 'culture']
+            },
+            4: {
+                startLocation: 'İzmir',
+                startLat: 38.4237,
+                startLng: 27.1428,
+                endLocation: 'Fethiye',
+                endLat: 36.6542,
+                endLng: 29.1256,
+                days: 5,
+                budget: 20000,  // 2026 gerçekçi bütçe
+                preferences: ['nature', 'gastronomy']
+            }
+        };
+        
+        const scenario = scenarios[scenarioId];
+        if (!scenario) {
+            console.error('Scenario not found:', scenarioId);
+            return;
+        }
+        
+        console.log('Loading demo scenario:', scenarioId, scenario);
+        
+        // Fill form fields
+        document.getElementById('startLocation').value = scenario.startLocation;
+        document.getElementById('startLat').value = scenario.startLat;
+        document.getElementById('startLng').value = scenario.startLng;
+        document.getElementById('endLocation').value = scenario.endLocation;
+        document.getElementById('endLat').value = scenario.endLat || '';
+        document.getElementById('endLng').value = scenario.endLng || '';
+        document.getElementById('days').value = scenario.days;
+        document.getElementById('budget').value = scenario.budget;
+        
+        // Set preferences
+        document.querySelectorAll('input[name="preferences"]').forEach(cb => {
+            cb.checked = scenario.preferences.includes(cb.value);
+        });
+        
+        // Show notification if available
+        if (typeof showNotification === 'function') {
+            showNotification(`Demo senaryo yüklendi: ${scenario.startLocation} ${scenario.endLocation ? '→ ' + scenario.endLocation : 'Turu'}`, 'success');
+        } else {
+            alert(`Demo senaryo yüklendi: ${scenario.startLocation} ${scenario.endLocation ? '→ ' + scenario.endLocation : 'Turu'}`);
+        }
+        
+        // Scroll to form
+        const form = document.getElementById('travelForm');
+        if (form) {
+            form.scrollIntoView({ behavior: 'smooth' });
+        }
+    } catch (error) {
+        console.error('Error loading demo:', error);
+        alert('Demo yüklenirken bir hata oluştu: ' + error.message);
+    }
+};
+
 // Setup event listeners
 function setupEventListeners() {
     // Travel form submission
@@ -175,7 +266,7 @@ async function reverseGeocode(lat, lng) {
 async function handleTravelFormSubmit(e) {
     e.preventDefault();
     
-    # First, geocode locations if they haven't been geocoded yet
+    // First, geocode locations if they haven't been geocoded yet
     const startLocation = document.getElementById('startLocation').value;
     const endLocation = document.getElementById('endLocation').value;
     
@@ -230,6 +321,9 @@ async function handleTravelFormSubmit(e) {
         
         const data = await response.json();
         
+        console.log('API Response:', data);
+        console.log('Plans:', data.plans);
+        
         if (data.success) {
             currentPlans = data.plans;
             displayPlans(data.plans);
@@ -251,8 +345,12 @@ async function handleTravelFormSubmit(e) {
 
 // Display travel plans
 function displayPlans(plans) {
+    console.log('displayPlans called with:', plans);
     const resultsSection = document.getElementById('resultsSection');
     resultsSection.style.display = 'block';
+    
+    // Initialize map
+    initMap();
     
     // Display the basic plan by default
     switchPlanTab('basic');
@@ -280,7 +378,14 @@ function switchPlanTab(tier) {
 
 // Display plan content
 function displayPlanContent(plan) {
+    console.log('displayPlanContent called with:', plan);
     const planContent = document.getElementById('planContent');
+    
+    if (!plan || !plan.itinerary) {
+        console.error('Invalid plan data:', plan);
+        planContent.innerHTML = '<p style="color: red; font-size: 18px;">Plan verisi yüklenemedi.</p>';
+        return;
+    }
     
     const budgetStatusClass = plan.fits_budget ? 'fits' : 'exceeds';
     const budgetStatusText = plan.fits_budget ? '✓ Bütçe içinde' : '✗ Bütçe aşımı';
@@ -308,64 +413,93 @@ function displayPlanContent(plan) {
         </div>
         
         <div class="itinerary">
-            <h3>Gün Gün Plan</h3>
+            <h3>📅 ${plan.total_days} Günlük Detaylı Program</h3>
     `;
     
-    plan.itinerary.forEach(day => {
+    plan.itinerary.forEach((day, index) => {
         html += `
             <div class="day-card">
                 <div class="day-header">
-                    <h4>Gün ${day.day} - ${day.date}</h4>
+                    <h4>🗓️ Gün ${day.day} - ${day.date}</h4>
                 </div>
+                
+                <div class="day-content">
         `;
         
         // Activities
         if (day.activities && day.activities.length > 0) {
-            day.activities.forEach(activity => {
+            html += `<div class="activities-section">
+                        <h5 style="color: #2ecc71; margin-bottom: 10px;">🎯 Aktiviteler:</h5>`;
+            
+            day.activities.forEach((activity, actIndex) => {
                 html += `
                     <div class="activity">
-                        <h5>${activity.name}</h5>
-                        <p>${activity.description}</p>
-                        <div class="activity-details">
-                            <span>⏱️ ${activity.duration} saat</span>
-                            <span>💰 ${activity.cost.toLocaleString('tr-TR')} ₺</span>
-                            <span>🏷️ ${getCategoryName(activity.category)}</span>
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                            <span style="background: #2ecc71; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold;">${actIndex + 1}</span>
+                            <h5 style="margin: 0; font-size: 1.2em; color: #2c3e50;">${activity.name}</h5>
+                        </div>
+                        <p style="margin: 10px 0; color: #666;">${activity.description}</p>
+                        <div class="activity-details" style="display: flex; gap: 15px; flex-wrap: wrap; margin-top: 10px;">
+                            <span style="background: #e8f5e9; padding: 5px 12px; border-radius: 20px;">⏱️ ${activity.duration} saat</span>
+                            <span style="background: #fff3e0; padding: 5px 12px; border-radius: 20px;">💰 ${activity.cost.toLocaleString('tr-TR')} ₺</span>
+                            <span style="background: #e3f2fd; padding: 5px 12px; border-radius: 20px;">🏷️ ${getCategoryName(activity.category)}</span>
                         </div>
                     </div>
                 `;
             });
+            html += `</div>`;
+        } else {
+            html += `<div style="padding: 15px; background: #fff3cd; border-radius: 8px; margin-bottom: 15px;">
+                        <p style="margin: 0; color: #856404;">ℹ️ Bu gün için özel aktivite planlanmamış. Serbest zaman.</p>
+                    </div>`;
         }
         
-        // Accommodation
+        // Accommodation and costs
+        html += `<div class="day-summary" style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 15px;">`;
+        
         if (day.accommodation) {
             html += `
-                <div class="accommodation">
+                <div style="margin-bottom: 10px;">
                     <strong>🏨 Konaklama:</strong> ${day.accommodation.name} 
-                    (${day.accommodation.cost_per_night.toLocaleString('tr-TR')} ₺)
+                    <span style="color: #27ae60; font-weight: bold;">(${day.accommodation.cost_per_night.toLocaleString('tr-TR')} ₺/gece)</span>
                 </div>
             `;
         }
         
-        // Food cost
         if (day.food_cost) {
             html += `
-                <div class="activity-details" style="margin-top: 10px;">
-                    <span>🍽️ Yemek: ${day.food_cost.toLocaleString('tr-TR')} ₺</span>
+                <div style="margin-bottom: 10px;">
+                    <strong>🍽️ Yemek:</strong> 
+                    <span style="color: #27ae60; font-weight: bold;">${day.food_cost.toLocaleString('tr-TR')} ₺</span>
                 </div>
             `;
         }
         
         html += `
-                <div class="day-cost">
-                    Günlük Toplam: ${day.daily_cost.toLocaleString('tr-TR')} ₺
+                <div style="margin-top: 15px; padding-top: 15px; border-top: 2px dashed #dee2e6;">
+                    <strong style="font-size: 1.1em;">💵 Günlük Toplam Maliyet:</strong> 
+                    <span style="color: #27ae60; font-size: 1.2em; font-weight: bold;">${day.daily_cost.toLocaleString('tr-TR')} ₺</span>
+                </div>
+            </div>
+        `;
+        
+        html += `
                 </div>
             </div>
         `;
     });
     
-    html += `</div>`;
+    html += `
+        </div>
+        <div class="plan-footer" style="background: linear-gradient(135deg, #2ecc71, #27ae60); color: white; padding: 20px; border-radius: 10px; margin-top: 20px; text-align: center;">
+            <h3 style="margin: 0 0 10px 0;">🎯 Genel Toplam</h3>
+            <p style="font-size: 1.5em; margin: 0; font-weight: bold;">${plan.estimated_cost.toLocaleString('tr-TR')} ₺</p>
+            <p style="margin: 10px 0 0 0; opacity: 0.9;">${plan.total_days} gün • ${budgetStatusText}</p>
+        </div>
+    `;
     
     planContent.innerHTML = html;
+    console.log('Plan content HTML generated successfully');
 }
 
 // Update map with plan route

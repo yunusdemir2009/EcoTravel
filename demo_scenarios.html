@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EcoTravel Demo Senaryoları</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .demo-container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #667eea;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .scenario-card {
+            background: #f8f9fa;
+            border: 2px solid #667eea;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .scenario-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.3);
+        }
+        .scenario-card h3 {
+            color: #667eea;
+            margin-top: 0;
+        }
+        .scenario-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .detail-item {
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            border-left: 3px solid #667eea;
+        }
+        .detail-label {
+            font-weight: bold;
+            color: #555;
+            font-size: 0.9em;
+        }
+        .detail-value {
+            color: #333;
+            font-size: 1.1em;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            margin-top: 10px;
+        }
+        button:hover {
+            background: #5568d3;
+        }
+        #result {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f0f7ff;
+            border-radius: 10px;
+            display: none;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #667eea;
+            font-size: 1.2em;
+        }
+        .plan-summary {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            border-left: 4px solid #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <h1>🌍 EcoTravel Demo Senaryoları</h1>
+        <p style="text-align: center; color: #666; margin-bottom: 30px;">
+            Aşağıdaki örnek senaryolardan birini seçerek uygulamayı test edin
+        </p>
+
+        <div class="scenario-card" onclick="runScenario(1)">
+            <h3>🏖️ Senaryo 1: Ankara'dan Antalya'ya Tatil</h3>
+            <div class="scenario-details">
+                <div class="detail-item">
+                    <div class="detail-label">Başlangıç</div>
+                    <div class="detail-value">Ankara</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Hedef</div>
+                    <div class="detail-value">Antalya</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Süre</div>
+                    <div class="detail-value">7 Gün</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Bütçe</div>
+                    <div class="detail-value">8,000₺</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Tercihler</div>
+                    <div class="detail-value">Doğa, Kültür</div>
+                </div>
+            </div>
+            <button>Bu Senaryoyu Çalıştır</button>
+        </div>
+
+        <div class="scenario-card" onclick="runScenario(2)">
+            <h3>🎭 Senaryo 2: İstanbul Kültür Turu</h3>
+            <div class="scenario-details">
+                <div class="detail-item">
+                    <div class="detail-label">Başlangıç</div>
+                    <div class="detail-value">İstanbul, Kadıköy</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Hedef</div>
+                    <div class="detail-value">Gidiş-Dönüş</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Süre</div>
+                    <div class="detail-value">3 Gün</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Bütçe</div>
+                    <div class="detail-value">3,500₺</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Tercihler</div>
+                    <div class="detail-value">Kültür, Gastronomi</div>
+                </div>
+            </div>
+            <button>Bu Senaryoyu Çalıştır</button>
+        </div>
+
+        <div class="scenario-card" onclick="runScenario(3)">
+            <h3>🌄 Senaryo 3: Kapadokya Macerası</h3>
+            <div class="scenario-details">
+                <div class="detail-item">
+                    <div class="detail-label">Başlangıç</div>
+                    <div class="detail-value">Ankara</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Hedef</div>
+                    <div class="detail-value">Nevşehir, Kapadokya</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Süre</div>
+                    <div class="detail-value">4 Gün</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Bütçe</div>
+                    <div class="detail-value">6,000₺</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Tercihler</div>
+                    <div class="detail-value">Doğa, Kültür</div>
+                </div>
+            </div>
+            <button>Bu Senaryoyu Çalıştır</button>
+        </div>
+
+        <div class="scenario-card" onclick="runScenario(4)">
+            <h3>🌊 Senaryo 4: Ege Sahil Turu</h3>
+            <div class="scenario-details">
+                <div class="detail-item">
+                    <div class="detail-label">Başlangıç</div>
+                    <div class="detail-value">İzmir</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Hedef</div>
+                    <div class="detail-value">Fethiye</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Süre</div>
+                    <div class="detail-value">5 Gün</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Bütçe</div>
+                    <div class="detail-value">7,500₺</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Tercihler</div>
+                    <div class="detail-value">Doğa, Gastronomi</div>
+                </div>
+            </div>
+            <button>Bu Senaryoyu Çalıştır</button>
+        </div>
+
+        <div id="result">
+            <h2>📊 Plan Sonuçları</h2>
+            <div id="resultContent"></div>
+        </div>
+    </div>
+
+    <script>
+        const scenarios = {
+            1: {
+                start_location: "Ankara",
+                start_lat: 39.9334,
+                start_lng: 32.8597,
+                end_location: "Antalya",
+                end_lat: 36.8969,
+                end_lng: 30.7133,
+                days: 7,
+                budget: 8000,
+                preferences: ["nature", "culture"]
+            },
+            2: {
+                start_location: "İstanbul, Kadıköy",
+                start_lat: 40.9833,
+                start_lng: 29.0333,
+                end_location: "",
+                end_lat: null,
+                end_lng: null,
+                days: 3,
+                budget: 3500,
+                preferences: ["culture", "gastronomy"]
+            },
+            3: {
+                start_location: "Ankara",
+                start_lat: 39.9334,
+                start_lng: 32.8597,
+                end_location: "Nevşehir, Kapadokya",
+                end_lat: 38.6431,
+                end_lng: 34.8286,
+                days: 4,
+                budget: 6000,
+                preferences: ["nature", "culture"]
+            },
+            4: {
+                start_location: "İzmir",
+                start_lat: 38.4237,
+                start_lng: 27.1428,
+                end_location: "Fethiye",
+                end_lat: 36.6542,
+                end_lng: 29.1256,
+                days: 5,
+                budget: 7500,
+                preferences: ["nature", "gastronomy"]
+            }
+        };
+
+        async function runScenario(scenarioId) {
+            const scenario = scenarios[scenarioId];
+            const resultDiv = document.getElementById('result');
+            const contentDiv = document.getElementById('resultContent');
+            
+            resultDiv.style.display = 'block';
+            contentDiv.innerHTML = '<div class="loading">⏳ Plan oluşturuluyor...</div>';
+            
+            try {
+                const response = await fetch('http://127.0.0.1:5000/api/plan', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(scenario)
+                });
+                
+                if (!response.ok) {
+                    throw new Error('API isteği başarısız oldu');
+                }
+                
+                const data = await response.json();
+                displayResults(data, scenarioId);
+            } catch (error) {
+                contentDiv.innerHTML = `<div style="color: red;">❌ Hata: ${error.message}</div>`;
+            }
+        }
+
+        function displayResults(data, scenarioId) {
+            const contentDiv = document.getElementById('resultContent');
+            const scenario = scenarios[scenarioId];
+            
+            let html = `
+                <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <h3>🗺️ ${scenario.start_location} → ${scenario.end_location || 'Gidiş-Dönüş'}</h3>
+                    <p><strong>Süre:</strong> ${scenario.days} gün | <strong>Bütçe:</strong> ${scenario.budget}₺</p>
+                </div>
+            `;
+            
+            // Basic Plan
+            if (data.plans && data.plans.basic) {
+                const basic = data.plans.basic;
+                html += `
+                    <div class="plan-summary">
+                        <h4>💰 Ekonomik Plan</h4>
+                        <p><strong>Toplam Maliyet:</strong> ${basic.total_cost}₺</p>
+                        <p><strong>Günlük Ortalama:</strong> ${basic.daily_average}₺</p>
+                        <p><strong>Konaklama:</strong> ${basic.accommodation.type} - ${basic.accommodation.cost_per_night}₺/gece</p>
+                        <p><strong>Ulaşım:</strong> ${basic.transportation.type} - ${basic.transportation.cost}₺</p>
+                        <p><strong>Günlük Aktiviteler:</strong></p>
+                        <ul>
+                            ${basic.daily_activities.map(act => `<li><strong>Gün ${act.day}:</strong> ${act.activities.join(', ')}</li>`).join('')}
+                        </ul>
+                    </div>
+                `;
+            }
+            
+            // Mid Plan
+            if (data.plans && data.plans.mid) {
+                const mid = data.plans.mid;
+                html += `
+                    <div class="plan-summary" style="border-left-color: #f39c12;">
+                        <h4>⭐ Orta Seviye Plan</h4>
+                        <p><strong>Toplam Maliyet:</strong> ${mid.total_cost}₺</p>
+                        <p><strong>Günlük Ortalama:</strong> ${mid.daily_average}₺</p>
+                        <p><strong>Konaklama:</strong> ${mid.accommodation.type} - ${mid.accommodation.cost_per_night}₺/gece</p>
+                        <p><strong>Ulaşım:</strong> ${mid.transportation.type} - ${mid.transportation.cost}₺</p>
+                        <p><strong>Günlük Aktiviteler:</strong></p>
+                        <ul>
+                            ${mid.daily_activities.map(act => `<li><strong>Gün ${act.day}:</strong> ${act.activities.join(', ')}</li>`).join('')}
+                        </ul>
+                    </div>
+                `;
+            }
+            
+            // Luxury Plan
+            if (data.plans && data.plans.luxury) {
+                const luxury = data.plans.luxury;
+                html += `
+                    <div class="plan-summary" style="border-left-color: #e74c3c;">
+                        <h4>💎 Lüks Plan</h4>
+                        <p><strong>Toplam Maliyet:</strong> ${luxury.total_cost}₺</p>
+                        <p><strong>Günlük Ortalama:</strong> ${luxury.daily_average}₺</p>
+                        <p><strong>Konaklama:</strong> ${luxury.accommodation.type} - ${luxury.accommodation.cost_per_night}₺/gece</p>
+                        <p><strong>Ulaşım:</strong> ${luxury.transportation.type} - ${luxury.transportation.cost}₺</p>
+                        <p><strong>Günlük Aktiviteler:</strong></p>
+                        <ul>
+                            ${luxury.daily_activities.map(act => `<li><strong>Gün ${act.day}:</strong> ${act.activities.join(', ')}</li>`).join('')}
+                        </ul>
+                    </div>
+                `;
+            }
+            
+            // POIs
+            if (data.pois && data.pois.length > 0) {
+                html += `
+                    <div style="background: white; padding: 15px; border-radius: 8px; margin-top: 20px;">
+                        <h4>📍 Yakındaki İlgi Çekici Yerler</h4>
+                        <ul>
+                            ${data.pois.slice(0, 10).map(poi => 
+                                `<li><strong>${poi.name}</strong> - ${poi.description} (${Math.round(poi.distance)}km)`
+                            ).join('')}
+                        </ul>
+                    </div>
+                `;
+            }
+            
+            html += `
+                <div style="text-align: center; margin-top: 20px;">
+                    <button onclick="window.open('http://127.0.0.1:5000', '_blank')" style="background: #27ae60;">
+                        Ana Uygulamayı Aç 🚀
+                    </button>
+                </div>
+            `;
+            
+            contentDiv.innerHTML = html;
+        }
+    </script>
+</body>
+</html>
