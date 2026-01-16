@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EcoTravel - Akıllı Gezi Planlayıcı</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🌍 EcoTravel</h1>
+            <p class="tagline">Akıllı Gezi Planlayıcı - Bütçene ve Zamanına Göre Kişiselleştirilmiş Rotalar</p>
+        </header>
+
+        <main>
+            <!-- Input Section -->
+            <section class="input-section">
+                <h2>Gezi Bilgileriniz</h2>
+                <form id="travelForm">
+                    <div class="form-group">
+                        <label for="startLat">Başlangıç Konumu (Enlem):</label>
+                        <input type="number" id="startLat" step="0.0001" value="39.9334" required>
+                        <small>Örnek: Ankara için 39.9334</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="startLng">Başlangıç Konumu (Boylam):</label>
+                        <input type="number" id="startLng" step="0.0001" value="32.8597" required>
+                        <small>Örnek: Ankara için 32.8597</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="endLat">Hedef Konum (Enlem) - İsteğe Bağlı:</label>
+                        <input type="number" id="endLat" step="0.0001" placeholder="Boş bırakın için gidiş-dönüş">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="endLng">Hedef Konum (Boylam) - İsteğe Bağlı:</label>
+                        <input type="number" id="endLng" step="0.0001" placeholder="Boş bırakın için gidiş-dönüş">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="days">Gün Sayısı:</label>
+                        <input type="number" id="days" min="1" max="30" value="5" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="budget">Bütçe (₺):</label>
+                        <input type="number" id="budget" min="500" step="100" value="5000" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Gezi Türü Tercihleri:</label>
+                        <div class="checkbox-group">
+                            <label>
+                                <input type="checkbox" name="preferences" value="nature"> Doğa
+                            </label>
+                            <label>
+                                <input type="checkbox" name="preferences" value="culture"> Kültür
+                            </label>
+                            <label>
+                                <input type="checkbox" name="preferences" value="gastronomy"> Gastronomi
+                            </label>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-primary">Plan Oluştur 🚀</button>
+                </form>
+            </section>
+
+            <!-- Results Section -->
+            <section id="resultsSection" class="results-section" style="display: none;">
+                <h2>Gezi Planlarınız</h2>
+                
+                <div class="plan-tabs">
+                    <button class="tab-btn active" data-tier="basic">Ekonomik Plan</button>
+                    <button class="tab-btn" data-tier="mid">Orta Seviye</button>
+                    <button class="tab-btn" data-tier="luxury">Lüks Plan</button>
+                </div>
+
+                <div id="planContent" class="plan-content">
+                    <!-- Plan details will be loaded here -->
+                </div>
+
+                <!-- Map Section -->
+                <div class="map-section">
+                    <h3>Rota Haritası</h3>
+                    <div id="map"></div>
+                </div>
+            </section>
+
+            <!-- POI List Section -->
+            <section class="poi-section">
+                <h2>Popüler Gezilecek Yerler</h2>
+                <div id="poiList" class="poi-grid">
+                    <!-- POIs will be loaded here -->
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>&copy; 2026 EcoTravel - Sürdürülebilir ve Akıllı Seyahat Planlama</p>
+        </footer>
+    </div>
+
+    <!-- Review Modal -->
+    <div id="reviewModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Yorum Ekle</h2>
+            <form id="reviewForm">
+                <input type="hidden" id="reviewPoiId">
+                <div class="form-group">
+                    <label for="rating">Puan (1-5):</label>
+                    <select id="rating" required>
+                        <option value="5">5 - Mükemmel</option>
+                        <option value="4">4 - Çok İyi</option>
+                        <option value="3">3 - İyi</option>
+                        <option value="2">2 - Orta</option>
+                        <option value="1">1 - Zayıf</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="comment">Yorumunuz:</label>
+                    <textarea id="comment" rows="4" required></textarea>
+                </div>
+                <button type="submit" class="btn-primary">Gönder</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
