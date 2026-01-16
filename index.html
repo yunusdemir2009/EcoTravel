@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EcoTravel - Çevre Dostu Seyahat Rehberi</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>🌍 EcoTravel</h1>
+            <p class="tagline">Doğa dostu seyahat deneyimleri</p>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="search-section">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Destinasyon ara..." />
+                <button id="searchBtn">Ara</button>
+            </div>
+            <div class="filter-buttons">
+                <button class="filter-btn active" data-filter="all">Tümü</button>
+                <button class="filter-btn" data-filter="mountain">Dağ</button>
+                <button class="filter-btn" data-filter="beach">Sahil</button>
+                <button class="filter-btn" data-filter="forest">Orman</button>
+                <button class="filter-btn" data-filter="city">Şehir</button>
+            </div>
+        </section>
+
+        <section class="destinations-grid" id="destinationsGrid">
+            <!-- Destinations will be populated by JavaScript -->
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 EcoTravel. Doğayı koruyarak keşfedin.</p>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
