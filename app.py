@@ -18,10 +18,12 @@ TURKISH_CITIES = {
     "çankaya": {"lat": 39.9181, "lng": 32.8619, "name": "Çankaya, Ankara"},
     "kızılay": {"lat": 39.9191, "lng": 32.8543, "name": "Kızılay, Ankara"},
     "istanbul": {"lat": 41.0082, "lng": 28.9784, "name": "İstanbul"},
+    "İstanbul": {"lat": 41.0082, "lng": 28.9784, "name": "İstanbul"},  # Capital İ support
     "beyoğlu": {"lat": 41.0370, "lng": 28.9784, "name": "Beyoğlu, İstanbul"},
     "kadıköy": {"lat": 40.9833, "lng": 29.0333, "name": "Kadıköy, İstanbul"},
     "beşiktaş": {"lat": 41.0428, "lng": 29.0078, "name": "Beşiktaş, İstanbul"},
     "izmir": {"lat": 38.4237, "lng": 27.1428, "name": "İzmir"},
+    "İzmir": {"lat": 38.4237, "lng": 27.1428, "name": "İzmir"},  # Capital İ support
     "konak": {"lat": 38.4189, "lng": 27.1287, "name": "Konak, İzmir"},
     "karşıyaka": {"lat": 38.4597, "lng": 27.1142, "name": "Karşıyaka, İzmir"},
     "antalya": {"lat": 36.8969, "lng": 30.7133, "name": "Antalya"},
